@@ -1,0 +1,27 @@
+#!/bin/bash
+
+function die
+{
+echo >&2 "$@"
+exit 1
+}
+
+# runcmd
+# Parameters
+#   $1 ... : params are the command to run
+runcmd()
+{
+[ $# -eq 0 ] && return
+echo "$@"
+eval "$@"
+}
+
+# mostly reads
+runcmd "sudo time find / -ls >/dev/null 2>&1"
+
+# mostly writes
+OUT=~/0tmp/TEST
+sudo rm -f ${OUT}
+runcmd "sudo time dd if=/dev/urandom of=${OUT} bs=4k count=1024000"
+sync
+sudo rm -f ${OUT}
