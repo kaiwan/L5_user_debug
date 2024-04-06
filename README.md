@@ -35,10 +35,13 @@ use only].
 *******************************************************************************
 
 kaiwanTECH TRAINING COURSES ::
+
 https://kaiwantech.com
+
 http://bit.ly/ktcorp
 
-Hope this helps! As is often said with regard to Linux, 
+Hope this helps! As is often said with regard to Linux,
+
 "Above all, have fun!"
 
 Warm Regards,
