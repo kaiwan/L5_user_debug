@@ -52,7 +52,7 @@ ALL_NM :=  ${FNAME_C} ${FNAME_C}_dbg ${FNAME_C}_dbg_asan ${FNAME_C}_dbg_ub ${FNA
 
 # Decide which compiler to use; GCC doesn't support MSAN, clang does
 CC := gcc
-ifeq (, $(shell which oclang))
+ifeq (, $(shell which clang))
   $(warning === WARNING! No clang (compiler) in PATH (reqd for MSAN); consider doing 'sudo apt install clang' or equivalent ===)
 else
   CC := clang
