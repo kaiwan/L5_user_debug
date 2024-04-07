@@ -14,13 +14,14 @@
 #  - indent: adhering to (Linux kernel) coding style guidelines (indent+checkpatch)
 #  - sa: static analysis target (via flawfinder, cppcheck)
 #  - dynamic analysis target: via valgrind
-#  -         + code coverage via gcov
+#  - code coverage via gcov/lcov
 #  - a packaging (.tar.xz) target and
 #  - a help target.
 #
 # You will require these utils installed:
 #  indent, flawfinder, valgrind, kernel-headers package -or- simply the
 #  checkpatch.pl script, gcov, lcov, tar; + libasan
+#  The lcov_gen.sh wrapper script
 #
 # To get started, just type:
 #  make help
@@ -51,12 +52,11 @@ ALL_NM :=  ${FNAME_C} ${FNAME_C}_dbg ${FNAME_C}_dbg_asan ${FNAME_C}_dbg_ub ${FNA
 
 # Decide which compiler to use; GCC doesn't support MSAN, clang does
 CC := gcc
-#LINKIN := -static-libasan
-ifeq (, $(shell which clang))
- $(warning === WARNING! No clang (compiler) in PATH (reqd for MSAN); consider doing 'sudo apt install clang' or equivalent ===)
+ifeq (, $(shell which oclang))
+  $(warning === WARNING! No clang (compiler) in PATH (reqd for MSAN); consider doing 'sudo apt install clang' or equivalent ===)
 else
- CC := clang
- LINKIN := -static-libsan
+  CC := clang
+  LINKIN := -static-libsan
 endif
 $(info Compiler set to $(CC))
 
@@ -64,7 +64,8 @@ STRIP=${CROSS_COMPILE}strip
 OBJCOPY=${CROSS_COMPILE}objcopy
 
 PROD_OPTLEVEL=-O2
-  # or -O3 or -Os
+  # -O<N>; N can be 0-3 or s (optimize for speed & size);
+  #  in the -D_FORTIFY_SOURCE=N option, set N to the same number
 CSTD=-ansi -std=c99 -std=c11 -std=c18  # the last one wins; else if unsupported, earlier ones...
 # For the meaning of the following feature test macros, see feature_test_macros(7)
 POSIX_STD=201112L
@@ -73,7 +74,7 @@ STD_DEFS=-D_DEFAULT_SOURCE -D_GNU_SOURCE
 # Add this option switch to CFLAGS / CFLAGS_DBG if you want ltrace to work on Ubuntu!
 LTRACE_ENABLE=-z lazy
 
-CFLAGS=-Wall -UDEBUG ${PROD_OPTLEVEL} -Werror=format-security ${CSTD} -D_POSIX_C_SOURCE=${POSIX_STD} ${STD_DEFS} -D_FORTIFY_SOURCE=2
+CFLAGS=-Wall -UDEBUG ${PROD_OPTLEVEL} -Werror=format-security ${CSTD} -D_POSIX_C_SOURCE=${POSIX_STD} ${STD_DEFS} -D_FORTIFY_SOURCE=${PROD_OPTLEVEL}
 # Dynamic analysis includes the compiler itself!
 # Especially the powerful Address Sanitizer (ASAN) toolset
 CFLAGS_DBG=-g -ggdb -gdwarf-4 -O0 -Wall -Wextra -DDEBUG -fno-omit-frame-pointer -Werror=format-security ${CSTD} -D_POSIX_C_SOURCE=${POSIX_STD} ${STD_DEFS}
@@ -133,7 +134,10 @@ prod_2part: ${FNAME_C}.c
 
 # 'debug' target: -O0, debug symbolic info (-g -ggdb), not stripped.
 # Generates the regular debug build, debug+ASAN, debug+UB, debug+LSAN, debug+MSAN builds'
-# MSAN requires clang
+# MSAN requires clang.
+# When using clang on Debian/Fedora-type distros, use -static-libsan (LINKIN is
+# set to this value); with GCC, and on Fedora-type distros, other libraries
+# (libasan, libubsan, liblsan) are required (pkg: lib<name>-<gcc ver>-...)
 debug: ${FNAME_C}.c
 	@echo
 	@echo "--- building 'debug'-ready targets (with debug symbolic info, not stripped) ---"
