@@ -19,9 +19,10 @@
 #  - a help target.
 #
 # You will require these utils installed:
-#  indent, flawfinder, valgrind, kernel-headers package -or- simply the
+#  indent, flawfinder, cppcheck, valgrind, kernel-headers package -or- simply the
 #  checkpatch.pl script, gcov, lcov, tar; + libasan
 #  The lcov_gen.sh wrapper script
+#   (DEV NOTE: careful of dependencies between this Makefile and script)
 #
 # To get started, just type:
 #  make help
