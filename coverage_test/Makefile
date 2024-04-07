@@ -47,9 +47,17 @@ CMDLINE_ARGS="1"
 
 
 ALL_NM :=  ${FNAME_C} ${FNAME_C}_dbg ${FNAME_C}_dbg_asan ${FNAME_C}_dbg_ub ${FNAME_C}_gcov
+# Decide which compiler to use; GCC doesn't support MSAN, clang does
+CC := gcc
+#LINKIN := -static-libasan
+ifeq (, $(shell which clang))
+ $(warning === WARNING! No clang (compiler) in PATH (reqd for MSAN); consider doing 'sudo apt install clang' ===)
+else
+ CC := clang
+ LINKIN := -static-libsan
+endif
+$(info Compiler set to $(CC))
 
-CC=${CROSS_COMPILE}gcc
-CL=${CROSS_COMPILE}clang
 STRIP=${CROSS_COMPILE}strip
 OBJCOPY=${CROSS_COMPILE}objcopy
 
@@ -67,9 +75,12 @@ CFLAGS=-Wall -UDEBUG ${PROD_OPTLEVEL} -Werror=format-security ${CSTD} -D_POSIX_C
 # Dynamic analysis includes the compiler itself!
 # Especially the powerful Address Sanitizer (ASAN) toolset
 CFLAGS_DBG=-g -ggdb -gdwarf-4 -O0 -Wall -Wextra -DDEBUG -fno-omit-frame-pointer -Werror=format-security ${CSTD} -D_POSIX_C_SOURCE=${POSIX_STD} ${STD_DEFS} -D_FORTIFY_SOURCE=2
-CFLAGS_DBG_ASAN=${CFLAGS_DBG} -fsanitize=address
+# For MSan, don't use the -D_FORTIFY_SOURCE option
+CFLAGS_DBG_MSAN1=-g -ggdb -gdwarf-4 -O0 -Wall -Wextra -DDEBUG -fno-omit-frame-pointer -Werror=format-security ${CSTD} -D_POSIX_C_SOURCE=${POSIX_STD} ${STD_DEFS}
+CFLAGS_DBG_ASAN=${CFLAGS_DBG} -fsanitize=address -fsanitize-address-use-after-scope
 CFLAGS_DBG_UB=${CFLAGS_DBG} -fsanitize=undefined
-CFLAGS_DBG_MSAN=${CFLAGS_DBG} -fsanitize=memory
+CFLAGS_DBG_MSAN=${CFLAGS_DBG_MSAN1} -fsanitize=memory -fPIE -pie
+CFLAGS_DBG_LSAN=${CFLAGS_DBG} -fsanitize=leak
 
 CFLAGS_GCOV=${CFLAGS_DBG} -fprofile-arcs -ftest-coverage -lgcov
 LINK=  #-pthread
@@ -129,14 +140,15 @@ debug: ${FNAME_C}.c
 	@echo
 	${CC} ${CFLAGS_DBG} ${FNAME_C}.c -o ${FNAME_C}_dbg ${LINK}
 #-- Sanitizers (use clang or GCC)
-	${CC} ${CFLAGS_DBG_ASAN} ${FNAME_C}.c -o ${FNAME_C}_dbg_asan ${LINK} -static-libasan
-	${CC} ${CFLAGS_DBG_UB} ${FNAME_C}.c -o ${FNAME_C}_dbg_ub ${LINK} -static-libasan
+	${CC} ${CFLAGS_DBG_ASAN} ${FNAME_C}.c -o ${FNAME_C}_dbg_asan ${LINK} ${LINKIN}
+	${CC} ${CFLAGS_DBG_UB} ${FNAME_C}.c -o ${FNAME_C}_dbg_ub ${LINK} ${LINKIN}
 # GCC doesn't support MSAN, clang does
-ifeq (, $(shell which clang))
+ifeq (gcc, $(CC))
 	$(warning === WARNING! No clang (compiler) in PATH (reqd for MSAN); consider doing 'sudo apt install clang' ===)
 else
-	${CL} ${CFLAGS_DBG_MSAN} ${FNAME_C}.c -o ${FNAME_C}_dbg_msan ${LINK}
+	${CC} ${CFLAGS_DBG_MSAN} ${FNAME_C}.c -o ${FNAME_C}_dbg_msan ${LINK}
 endif
+	${CC} ${CFLAGS_DBG_LSAN} ${FNAME_C}.c -o ${FNAME_C}_dbg_lsan ${LINK} ${LINKIN}
 
 
 #--------------- More (useful) targets! -------------------------------
