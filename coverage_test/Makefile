@@ -41,12 +41,14 @@ ALL :=  prod prod_2part
 # Also, it's recommended to keep one Makefile per program in separate directories.
 ###
 FNAME_C := test2
-#--- USER CHECK: manually add params as required
+#--- CHECK: manually add params as required
 # Populate any required cmdline arguments to the process here:
 CMDLINE_ARGS="1"
 
 
-ALL_NM :=  ${FNAME_C} ${FNAME_C}_dbg ${FNAME_C}_dbg_asan ${FNAME_C}_dbg_ub ${FNAME_C}_gcov
+# Can remove the 'msan' one if it doesn't build - requires clang
+ALL_NM :=  ${FNAME_C} ${FNAME_C}_dbg ${FNAME_C}_dbg_asan ${FNAME_C}_dbg_ub ${FNAME_C}_dbg_lsan ${FNAME_C}_gcov ${FNAME_C}_dbg_msan
+
 # Decide which compiler to use; GCC doesn't support MSAN, clang does
 CC := gcc
 #LINKIN := -static-libasan
@@ -281,11 +283,21 @@ endif
 # ${FNAME_C}_covg and the .gcno ('notes') files as well
 	make clean
 	@echo "___"
+	@echo "> Forcing compiler to GCC for coverage, as gcov/lcov seem to require it"
+	$(eval CC := gcc)
+# For coverage analysis, gcov/lcov seems to require compilation via GCC (not clang)
 	${CC} ${CFLAGS_GCOV} ${FNAME_C}.c -o ${FNAME_C}_gcov ${LINK}
 	@if test -z "${CMDLINE_ARGS}"; then echo "\n@@@ (Possible) Warning: no parameters being passed to the program under test ${FNAME_C}_gcov ? @@@\n"; fi
 
 	@echo "-------------- Running via our wrapper ${LCOV_SCRIPT} --------------"
 	${LCOV_SCRIPT} ${FNAME_C}_gcov ${CMDLINE_ARGS}
+# lcov_gen.sh Notes:
+#  - If you want a cumulative / merged code coverage report, run your next coverage
+#    test case via this script. In effect, simply adjust the CMDLINE_ARGS variable here
+#    and run 'make covg' again
+#  - If you want to start from scratch, *wiping* previous coverage data, then
+#    add the -r (reset) option when invoking this script (above).
+	
 # exit unconditionally
 %:
 	@true
@@ -323,15 +335,22 @@ package:
 	@echo 'Tip: when extracting, to extract into a dir of the same name as the tar file,'
 	@echo ' do: tar -xvf ${PKG_NAME}.tar.xz --one-top-level'
 
-
 clean:
 	@echo
 	@echo "--- cleaning ---"
 	@echo
-	rm -vf ${FNAME_C} ${FNAME_C}_dbg ${FNAME_C}_dbg_asan ${FNAME_C}_dbg_ub ${FNAME_C}_dbg_msan \
-		core* vgcore* *.o *~
+#	rm -vf ${FNAME_C} ${FNAME_C}_dbg ${FNAME_C}_dbg_asan ${FNAME_C}_dbg_ub ${FNAME_C}_dbg_msan
+	rm -vf ${ALL_NM} core* vgcore* *.o *~
 # rm coverage testing metadata
 	rm -rfv ${FNAME_C}_gcov *.[ch].gcov *.gcda *.gcno *.info lcov_html/ lcov_meta/ lcov_report/
+	@echo 'Note:'
+	@echo 'Special case wrt the 'clean' target and the code coevrage target (covg):'
+	@echo ' It deliberately does NOT delete the LCOV metadata, intermediate and final LCOV coverage'
+	@echo ' report folders - the ones named 0lcov_meta/, lcov_onerun_html/ and lcov_merged_html/ resp,'
+	@echo ' as this allows you to generate a merged / cumulative code coverage report.'
+	@echo 'To start from scratch, you can either:'
+	@echo '- manually delete these 3 folders, OR,'
+	@echo '- change the invocation of the lcov_gen.sh script in the Makefile, passing the -r option'
 
 help:
 	@echo '=== Makefile Help : additional targets available ==='
