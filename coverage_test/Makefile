@@ -53,7 +53,7 @@ ALL_NM :=  ${FNAME_C} ${FNAME_C}_dbg ${FNAME_C}_dbg_asan ${FNAME_C}_dbg_ub ${FNA
 CC := gcc
 #LINKIN := -static-libasan
 ifeq (, $(shell which clang))
- $(warning === WARNING! No clang (compiler) in PATH (reqd for MSAN); consider doing 'sudo apt install clang' ===)
+ $(warning === WARNING! No clang (compiler) in PATH (reqd for MSAN); consider doing 'sudo apt install clang' or equivalent ===)
 else
  CC := clang
  LINKIN := -static-libsan
@@ -146,7 +146,7 @@ debug: ${FNAME_C}.c
 	${CC} ${CFLAGS_DBG_UB} ${FNAME_C}.c -o ${FNAME_C}_dbg_ub ${LINK} ${LINKIN}
 # GCC doesn't support MSAN, clang does
 ifeq (gcc, $(CC))
-	$(warning === WARNING! No clang (compiler) in PATH (reqd for MSAN); consider doing 'sudo apt install clang' ===)
+	$(warning === WARNING! No clang (compiler) in PATH (reqd for MSAN); consider doing 'sudo apt install clang' or equivalent ===)
 else
 	${CC} ${CFLAGS_DBG_MSAN} ${FNAME_C}.c -o ${FNAME_C}_dbg_msan ${LINK}
 endif
@@ -165,7 +165,7 @@ code-style:
 
 indent: ${SRC_FILES}
 ifeq (, $(shell which ${INDENT}))
-	$(warning === WARNING! ${INDENT} not installed; consider doing 'sudo apt install indent' ===)
+	$(warning === WARNING! ${INDENT} not installed; consider doing 'sudo apt install indent' or equivalent ===)
 else
 	make clean
 	@echo
@@ -197,7 +197,7 @@ sa:   # static analysis
 # static analysis with flawfinder
 sa_flawfinder:
 ifeq (, $(shell which ${FLAWFINDER}))
-	$(warning === WARNING! ${FLAWFINDER} not installed; consider doing 'sudo apt install flawfinder' ===)
+	$(warning === WARNING! ${FLAWFINDER} not installed; consider doing 'sudo apt install flawfinder' or equivalent ===)
 else
 	make clean
 	@echo
@@ -209,7 +209,7 @@ endif
 # static analysis with cppcheck
 sa_cppcheck:
 ifeq (, $(shell which ${CPPCHECK}))
-	$(warning === WARNING! ${CPPCHECK} not installed; consider doing 'sudo apt install cppcheck' ===)
+	$(warning === WARNING! ${CPPCHECK} not installed; consider doing 'sudo apt install cppcheck' or equivalent ===)
 else
 	make clean
 	@echo
@@ -222,7 +222,7 @@ endif
 # dynamic analysis with valgrind
 valgrind:
 ifeq (, $(shell which ${VALGRIND}))
-	$(warning === WARNING! ${VALGRIND} not installed; consider doing 'sudo apt install valgrind' ===)
+	$(warning === WARNING! ${VALGRIND} not installed; consider doing 'sudo apt install valgrind' or equivalent ===)
 else
 	make --ignore-errors debug
 	@echo
