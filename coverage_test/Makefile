@@ -339,18 +339,17 @@ clean:
 	@echo
 	@echo "--- cleaning ---"
 	@echo
-#	rm -vf ${FNAME_C} ${FNAME_C}_dbg ${FNAME_C}_dbg_asan ${FNAME_C}_dbg_ub ${FNAME_C}_dbg_msan
 	rm -vf ${ALL_NM} core* vgcore* *.o *~
-# rm coverage testing metadata
-	rm -rfv ${FNAME_C}_gcov *.[ch].gcov *.gcda *.gcno *.info lcov_html/ lcov_meta/ lcov_report/
-	@echo 'Note:'
-	@echo 'Special case wrt the 'clean' target and the code coevrage target (covg):'
-	@echo ' It deliberately does NOT delete the LCOV metadata, intermediate and final LCOV coverage'
-	@echo ' report folders - the ones named 0lcov_meta/, lcov_onerun_html/ and lcov_merged_html/ resp,'
-	@echo ' as this allows you to generate a merged / cumulative code coverage report.'
-	@echo 'To start from scratch, you can either:'
-	@echo '- manually delete these 3 folders, OR,'
-	@echo '- change the invocation of the lcov_gen.sh script in the Makefile, passing the -r option'
+# rm some of the code coverage metadata
+	rm -rfv ${FNAME_C}_gcov *.[ch].gcov *.gcda *.gcno *.info
+
+	@echo "Note: Special case wrt the 'clean' target and the code coverage target (covg):"
+	@echo " It deliberately does NOT delete the LCOV metadata, intermediate and final LCOV coverage"
+	@echo " report folders - the ones named 0lcov_meta/, lcov_onerun_html/ and lcov_merged_html/ resp,"
+	@echo " as they're required to generate a merged / cumulative code coverage report."
+	@echo "To start code coverage analysis from scratch, you can either:"
+	@echo "- manually delete these 3 folders, OR,"
+	@echo "- change the invocation of the lcov_gen.sh script in the Makefile, passing the -r option"
 
 help:
 	@echo '=== Makefile Help : additional targets available ==='
@@ -391,6 +390,13 @@ help:
 	@echo
 	@echo '--- code coverage ---'
 	@echo ' covg       : run the gcov+lcov code coverage tooling on the source (generates html output!). NOTE: this target requires our ${LCOV_SCRIPT} wrapper script installed (location: https://github.com/kaiwan/usefulsnips/blob/master/lcov_gen.sh)'
+	@echo " Note: Special case wrt the 'clean' target and the code coverage target (covg):"
+	@echo "  It deliberately does NOT delete the LCOV metadata, intermediate and final LCOV coverage"
+	@echo "  report folders - the ones named 0lcov_meta/, lcov_onerun_html/ and lcov_merged_html/ resp,"
+	@echo "  as they're required to generate a merged / cumulative code coverage report."
+	@echo " To start code coverage analysis from scratch, you can either:"
+	@echo " - manually delete these 3 folders, OR,"
+	@echo " - change the invocation of the lcov_gen.sh script in the Makefile, passing the -r option"
 
 	@echo
 	@echo '--- TEST all ---'
@@ -401,6 +407,7 @@ help:
 	@echo
 	@echo '--- misc targets ---'
 	@echo ' clean      : cleanup - remove all the binaries, core files, etc'
+	@echo '              See special note wrt code coverage'
 	@echo ' package    : tar and compress the source files into the dir above'
 	@echo '  Tip: when extracting, to extract into a dir of the same name as the tar file, do:'
 	@echo '       tar -xvf ${PKG_NAME}.tar.xz --one-top-level'
