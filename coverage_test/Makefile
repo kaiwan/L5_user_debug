@@ -119,6 +119,9 @@ prod_2part: ${FNAME_C}.c
 	${STRIP} --strip-debug ./${FNAME_C}
 	${OBJCOPY} --add-gnu-debuglink=./${FNAME_C}_dbg ./${FNAME_C}
 
+# 'debug' target: -O0, debug symbolic info (-g -ggdb), not stripped.
+# Generates the regular debug build, debug+ASAN, debug+UB, debug+LSAN, debug+MSAN builds'
+# MSAN requires clang
 debug: ${FNAME_C}.c
 	@echo
 	@echo "--- building 'debug'-ready targets (with debug symbolic info, not stripped) ---"
@@ -211,7 +214,7 @@ else
 	@echo
 	@echo "--- dynamic analysis with Valgrind memcheck ---"
 	@echo
-#--- USER CHECK: have you populated the above CMDLINE_ARGS var with the required cmdline?
+#--- CHECK: have you populated the above CMDLINE_ARGS var with the required cmdline?
 	@if test -z "${CMDLINE_ARGS}"; then echo "\n@@@ (Possible) Warning: no parameters being passed to the program under test ${FNAME_C}_gcov ? @@@\n"; fi
 	${VALGRIND} --tool=memcheck --trace-children=yes ./${FNAME_C}_dbg ${CMDLINE_ARGS}
 endif
@@ -222,20 +225,22 @@ san:
 	@echo
 	@echo "--- dynamic analysis with the Address Sanitizer (ASAN) ---"
 	@echo
-#--- USER CHECK: have you populated the above CMDLINE_ARGS var with the required cmdline?
+#--- CHECK: have you populated the above CMDLINE_ARGS var with the required cmdline?
 	./${FNAME_C}_dbg_asan ${CMDLINE_ARGS}
 
 	@echo
 	@echo "--- dynamic analysis with the Undefined Behavior Sanitizer (UBSAN) ---"
 	@echo
-#--- USER CHECK: have you populated the above CMDLINE_ARGS var with the required cmdline?
+#--- CHECK: have you populated the above CMDLINE_ARGS var with the required cmdline?
 	./${FNAME_C}_dbg_ub ${CMDLINE_ARGS}
 
 	@echo
 	@echo "--- dynamic analysis with the Memory Sanitizer (MSAN) ---"
 	@echo
-#--- USER CHECK: have you populated the above CMDLINE_ARGS var with the required cmdline?
+#--- CHECK: have you populated the above CMDLINE_ARGS var with the required cmdline?
 	./${FNAME_C}_dbg_msan ${CMDLINE_ARGS}
+
+# dynamic analysis run with LSan binary not done here (as ASan typically covers leakage)
 
 #----- Testing: line coverage with gcov(1), lcov(1)
 # ref: https://backstreetcoder.com/code-coverage-using-gcov-lcov-in-linux/
@@ -328,10 +333,10 @@ help:
 
 	@echo 'Regular targets ::'
 	@echo ' 1. 'prod'  : regular production target: -O2, no debug symbolic info, stripped'
-	@echo ' 2. 'debug' : -O0, debug symbolic info (-g -ggdb), not stripped'
+	@echo ' 2. 'debug' : -O0, debug symbolic info (-g -ggdb), not stripped. Generates the regular debug build, debug+ASAN, debug+UB, debug+LSAN, debug+MSAN builds'
 	@echo ' 3. 'prod_2part': production target : -O2, no debug symbolic info, strip-debug; \
     Excellent for production as it gives ability to debug as and when required! \
-    (shown as third option as it *requires* the 'debug' build'
+    (shown as third option as it *requires* the 'debug' build as a step'
 	@echo
 	@echo 'Doing a 'make' will build all three shown above.'
 
