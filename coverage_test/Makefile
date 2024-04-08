@@ -14,13 +14,15 @@
 #  - indent: adhering to (Linux kernel) coding style guidelines (indent+checkpatch)
 #  - sa: static analysis target (via flawfinder, cppcheck)
 #  - dynamic analysis target: via valgrind
-#  -         + code coverage via gcov
+#  - code coverage via gcov/lcov
 #  - a packaging (.tar.xz) target and
 #  - a help target.
 #
 # You will require these utils installed:
-#  indent, flawfinder, valgrind, kernel-headers package -or- simply the
+#  indent, flawfinder, cppcheck, valgrind, kernel-headers package -or- simply the
 #  checkpatch.pl script, gcov, lcov, tar; + libasan
+#  The lcov_gen.sh wrapper script
+#   (DEV NOTE: careful of dependencies between this Makefile and script)
 #
 # To get started, just type:
 #  make help
@@ -51,12 +53,11 @@ ALL_NM :=  ${FNAME_C} ${FNAME_C}_dbg ${FNAME_C}_dbg_asan ${FNAME_C}_dbg_ub ${FNA
 
 # Decide which compiler to use; GCC doesn't support MSAN, clang does
 CC := gcc
-#LINKIN := -static-libasan
 ifeq (, $(shell which clang))
- $(warning === WARNING! No clang (compiler) in PATH (reqd for MSAN); consider doing 'sudo apt install clang' ===)
+  $(warning === WARNING! No clang (compiler) in PATH (reqd for MSAN); consider doing 'sudo apt install clang' or equivalent ===)
 else
- CC := clang
- LINKIN := -static-libsan
+  CC := clang
+  LINKIN := -static-libsan
 endif
 $(info Compiler set to $(CC))
 
@@ -64,7 +65,8 @@ STRIP=${CROSS_COMPILE}strip
 OBJCOPY=${CROSS_COMPILE}objcopy
 
 PROD_OPTLEVEL=-O2
-  # or -O3 or -Os
+  # -O<N>; N can be 0-3 or s (optimize for speed & size);
+  #  in the -D_FORTIFY_SOURCE=N option, set N to the same number
 CSTD=-ansi -std=c99 -std=c11 -std=c18  # the last one wins; else if unsupported, earlier ones...
 # For the meaning of the following feature test macros, see feature_test_macros(7)
 POSIX_STD=201112L
@@ -73,15 +75,14 @@ STD_DEFS=-D_DEFAULT_SOURCE -D_GNU_SOURCE
 # Add this option switch to CFLAGS / CFLAGS_DBG if you want ltrace to work on Ubuntu!
 LTRACE_ENABLE=-z lazy
 
-CFLAGS=-Wall -UDEBUG ${PROD_OPTLEVEL} -Werror=format-security ${CSTD} -D_POSIX_C_SOURCE=${POSIX_STD} ${STD_DEFS} -D_FORTIFY_SOURCE=2
+CFLAGS=-Wall -UDEBUG ${PROD_OPTLEVEL} -Werror=format-security ${CSTD} -D_POSIX_C_SOURCE=${POSIX_STD} ${STD_DEFS} -D_FORTIFY_SOURCE=${PROD_OPTLEVEL}
 # Dynamic analysis includes the compiler itself!
 # Especially the powerful Address Sanitizer (ASAN) toolset
-CFLAGS_DBG=-g -ggdb -gdwarf-4 -O0 -Wall -Wextra -DDEBUG -fno-omit-frame-pointer -Werror=format-security ${CSTD} -D_POSIX_C_SOURCE=${POSIX_STD} ${STD_DEFS} -D_FORTIFY_SOURCE=2
+CFLAGS_DBG=-g -ggdb -gdwarf-4 -O0 -Wall -Wextra -DDEBUG -fno-omit-frame-pointer -Werror=format-security ${CSTD} -D_POSIX_C_SOURCE=${POSIX_STD} ${STD_DEFS}
 # For MSan, don't use the -D_FORTIFY_SOURCE option
-CFLAGS_DBG_MSAN1=-g -ggdb -gdwarf-4 -O0 -Wall -Wextra -DDEBUG -fno-omit-frame-pointer -Werror=format-security ${CSTD} -D_POSIX_C_SOURCE=${POSIX_STD} ${STD_DEFS}
 CFLAGS_DBG_ASAN=${CFLAGS_DBG} -fsanitize=address -fsanitize-address-use-after-scope
 CFLAGS_DBG_UB=${CFLAGS_DBG} -fsanitize=undefined
-CFLAGS_DBG_MSAN=${CFLAGS_DBG_MSAN1} -fsanitize=memory -fPIE -pie
+CFLAGS_DBG_MSAN=${CFLAGS_DBG} -fsanitize=memory -fPIE -pie
 CFLAGS_DBG_LSAN=${CFLAGS_DBG} -fsanitize=leak
 
 CFLAGS_GCOV=${CFLAGS_DBG} -fprofile-arcs -ftest-coverage -lgcov
@@ -134,7 +135,10 @@ prod_2part: ${FNAME_C}.c
 
 # 'debug' target: -O0, debug symbolic info (-g -ggdb), not stripped.
 # Generates the regular debug build, debug+ASAN, debug+UB, debug+LSAN, debug+MSAN builds'
-# MSAN requires clang
+# MSAN requires clang.
+# When using clang on Debian/Fedora-type distros, use -static-libsan (LINKIN is
+# set to this value); with GCC, and on Fedora-type distros, other libraries
+# (libasan, libubsan, liblsan) are required (pkg: lib<name>-<gcc ver>-...)
 debug: ${FNAME_C}.c
 	@echo
 	@echo "--- building 'debug'-ready targets (with debug symbolic info, not stripped) ---"
@@ -146,7 +150,7 @@ debug: ${FNAME_C}.c
 	${CC} ${CFLAGS_DBG_UB} ${FNAME_C}.c -o ${FNAME_C}_dbg_ub ${LINK} ${LINKIN}
 # GCC doesn't support MSAN, clang does
 ifeq (gcc, $(CC))
-	$(warning === WARNING! No clang (compiler) in PATH (reqd for MSAN); consider doing 'sudo apt install clang' ===)
+	$(warning === WARNING! No clang (compiler) in PATH (reqd for MSAN); consider doing 'sudo apt install clang' or equivalent ===)
 else
 	${CC} ${CFLAGS_DBG_MSAN} ${FNAME_C}.c -o ${FNAME_C}_dbg_msan ${LINK}
 endif
@@ -165,7 +169,7 @@ code-style:
 
 indent: ${SRC_FILES}
 ifeq (, $(shell which ${INDENT}))
-	$(warning === WARNING! ${INDENT} not installed; consider doing 'sudo apt install indent' ===)
+	$(warning === WARNING! ${INDENT} not installed; consider doing 'sudo apt install indent' or equivalent ===)
 else
 	make clean
 	@echo
@@ -197,7 +201,7 @@ sa:   # static analysis
 # static analysis with flawfinder
 sa_flawfinder:
 ifeq (, $(shell which ${FLAWFINDER}))
-	$(warning === WARNING! ${FLAWFINDER} not installed; consider doing 'sudo apt install flawfinder' ===)
+	$(warning === WARNING! ${FLAWFINDER} not installed; consider doing 'sudo apt install flawfinder' or equivalent ===)
 else
 	make clean
 	@echo
@@ -209,7 +213,7 @@ endif
 # static analysis with cppcheck
 sa_cppcheck:
 ifeq (, $(shell which ${CPPCHECK}))
-	$(warning === WARNING! ${CPPCHECK} not installed; consider doing 'sudo apt install cppcheck' ===)
+	$(warning === WARNING! ${CPPCHECK} not installed; consider doing 'sudo apt install cppcheck' or equivalent ===)
 else
 	make clean
 	@echo
@@ -222,7 +226,7 @@ endif
 # dynamic analysis with valgrind
 valgrind:
 ifeq (, $(shell which ${VALGRIND}))
-	$(warning === WARNING! ${VALGRIND} not installed; consider doing 'sudo apt install valgrind' ===)
+	$(warning === WARNING! ${VALGRIND} not installed; consider doing 'sudo apt install valgrind' or equivalent ===)
 else
 	make --ignore-errors debug
 	@echo
@@ -296,7 +300,8 @@ endif
 #    test case via this script. In effect, simply adjust the CMDLINE_ARGS variable here
 #    and run 'make covg' again
 #  - If you want to start from scratch, *wiping* previous coverage data, then
-#    add the -r (reset) option when invoking this script (above).
+#    add the -r (reset) option when invoking this script (above) -OR-
+#    simply invoke the 'clean_lcov' target (which deletes all the lcov meta dirs)
 	
 # exit unconditionally
 %:
@@ -348,8 +353,15 @@ clean:
 	@echo " report folders - the ones named 0lcov_meta/, lcov_onerun_html/ and lcov_merged_html/ resp,"
 	@echo " as they're required to generate a merged / cumulative code coverage report."
 	@echo "To start code coverage analysis from scratch, you can either:"
-	@echo "- manually delete these 3 folders, OR,"
+	@echo "- invoke the special 'make clean_lcov' (it manually delete these 3 folders), OR,"
 	@echo "- change the invocation of the lcov_gen.sh script in the Makefile, passing the -r option"
+
+clean_lcov:
+	@echo
+	@echo "--- cleaning LCOV metadata ---"
+	@echo
+	# NOTE! depedency on the lcov_gen.sh script, on these folder names
+	rm -rvf 0lcov_meta/  lcov_merged_html/  lcov_onerun_html/
 
 help:
 	@echo '=== Makefile Help : additional targets available ==='
@@ -395,7 +407,7 @@ help:
 	@echo "  report folders - the ones named 0lcov_meta/, lcov_onerun_html/ and lcov_merged_html/ resp,"
 	@echo "  as they're required to generate a merged / cumulative code coverage report."
 	@echo " To start code coverage analysis from scratch, you can either:"
-	@echo " - manually delete these 3 folders, OR,"
+	@echo " - invoke the special 'make clean_lcov' (it manually delete these 3 folders), OR,"
 	@echo " - change the invocation of the lcov_gen.sh script in the Makefile, passing the -r option"
 
 	@echo
@@ -408,6 +420,7 @@ help:
 	@echo '--- misc targets ---'
 	@echo ' clean      : cleanup - remove all the binaries, core files, etc'
 	@echo '              See special note wrt code coverage'
+	@echo ' clean_lcov : cleanup the LCOV metadata folders; implies code coverage starts from scratch'
 	@echo ' package    : tar and compress the source files into the dir above'
 	@echo '  Tip: when extracting, to extract into a dir of the same name as the tar file, do:'
 	@echo '       tar -xvf ${PKG_NAME}.tar.xz --one-top-level'
