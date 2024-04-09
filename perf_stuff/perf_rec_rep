@@ -1,0 +1,118 @@
+#!/bin/bash
+# Small tests:
+# Using perf to record and report - profile - CPU usage.
+# (c) Kaiwan NB, kaiwanTECH
+# License: MIT.
+name=$(basename $0)
+
+die()
+{
+echo >&2 "FATAL: $@"
+exit 1
+}
+# runcmd
+# Parameters
+#   $1 ... : params are the command to run
+runcmd()
+{
+	[ $# -eq 0 ] && return
+	echo "$@"
+	eval "$@"
+}
+
+SAMPLING_FREQ=99
+TIME=10s
+
+process_report()
+{
+  echo "
+[+] Reporting ..."
+  runcmd "perf report --sort cpu,comm --stdio"
+  runcmd "perf script -i perf.data > profile_data.txt"
+  chown ${LOGNAME}:${LOGNAME} profile_data.txt
+# TIP: we've exported the trace to a file; u can try
+}
+trap process_report INT QUIT
+
+test1_fork()
+{
+  echo "[+] test1_fork(): recording ... pl wait for time of ${TIME} ..."
+  runcmd "perf record -F ${SAMPLING_FREQ} \
+	-C 0 \
+	--call-graph dwarf \
+	-- taskset 01 stress-ng --malloc 1 \
+	-t ${TIME}"
+  # -C 0 : only on cpu #0
+	#-- taskset 01 stress-ng --fork 1 \
+	#-- taskset 01 stress-ng --io 1 \
+}
+
+test2_matrixmul_pthrd()
+{
+  local PRG=./thrd_matrixmul #_dbg
+  [[ ! -f ${PRG} ]] && die "Program \"${PRG}\" not found."
+
+  echo "[+] test2_matrixmul_pthrd(): recording ... pl wait ..."
+  runcmd "perf record -F ${SAMPLING_FREQ} \
+	-a \
+	--call-graph dwarf \
+	-- ${PRG}"
+  # -a : sample across all cpu cores
+}
+
+#--
+# Src for this demo's here:
+#  https://github.com/kaiwan/cpu_sched_demo
+# Params
+#  $1 : 0 = run the prg ver compiled without symbols
+#       1 = run the prg ver compiled with symbols
+test3_cpusched_mt_demo()
+{
+  local PRG=./sched_pthrd_rtprio_dbg
+  local ARGS="32"
+
+  echo -n "*** Running program "
+  [[ $1 -eq 0 ]] && {
+    PRG=./sched_pthrd_rtprio
+    echo "WITHOUT symbols ***"
+  } || {
+    echo "WITH symbols ***"
+  }
+  [[ ! -f ${PRG} ]] && die "Program \"${PRG}\" not found."
+
+  echo "[+] test3_cpusched_mt_demo(): recording ... pl wait ..."
+  runcmd "perf record -F ${SAMPLING_FREQ} \
+	-C 0 \
+	--call-graph dwarf \
+	-- taskset 01 ${PRG} ${ARGS}"
+  # -C 0 : only on cpu #0
+}
+
+test4_fork_exit()
+{
+  local PRG=./fork_test_dbg
+  [[ ! -f ${PRG} ]] && die "Program \"${PRG}\" not found."
+
+  echo "[+] test4_fork_exit(): recording ... pl wait ..."
+  runcmd "perf record -F ${SAMPLING_FREQ} \
+	-C 1 \
+	--call-graph dwarf \
+	-- taskset 02 ${PRG}"
+  # -a : sample across all cpu cores
+}
+
+
+#--- 'main' ---
+[[ $(id -u) -ne 0 ]] && die echo "${name}: need root."
+test1_fork
+#test2_matrixmul_pthrd
+
+echo
+
+#test3_cpusched_mt_demo 0  # without symbols
+#test3_cpusched_mt_demo 1  # with symbols (in the app only)
+
+#test4_fork_exit()
+
+process_report
+exit 0
