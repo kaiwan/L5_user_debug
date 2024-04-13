@@ -60,6 +60,7 @@ else
   LINKIN := -static-libsan
 endif
 CC := gcc
+LINKIN := -static-libasan
 $(info Compiler set to $(CC))
 
 STRIP=${CROSS_COMPILE}strip
@@ -135,6 +136,7 @@ prod_2part: ${FNAME_C}.c
 # Most IMP, setup the 'debug link' in the release binary, pointing to the debug
 # info file; this, in effect, is the 2part solution!
 	${OBJCOPY} --add-gnu-debuglink=./${FNAME_C}_dbg ./${FNAME_C}
+	readelf --debug-dump ./${FNAME_C} | grep -A2 'debuglink'
 
 # 'debug' target: -O0, debug symbolic info (-g -ggdb), not stripped.
 # Generates the regular debug build, debug+ASAN, debug+UB, debug+LSAN, debug+MSAN builds'
