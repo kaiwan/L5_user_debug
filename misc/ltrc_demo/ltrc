@@ -1,0 +1,69 @@
+#!/bin/bash
+# Turn on unofficial Bash 'strict mode'! V useful
+# "Convert many kinds of hidden, intermittent, or subtle bugs into immediate, glaringly obvious errors"
+# ref: http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+
+name=$(basename $0)
+
+die()
+{
+echo >&2 "FATAL: $*"
+exit 1
+}
+
+# runcmd
+# Parameters
+#   $1 ... : params are the command to run
+runcmd()
+{
+	[ $# -eq 0 ] && return
+	echo "$@"
+	eval "$@"
+}
+
+usage() {
+  echo "Usage: ${name} [-S] [-h]"
+  echo "  -S  Also show all system calls generated while running the PUT"
+  echo "  -h  Display this help message"
+  exit 1
+}
+
+
+#--- 'main'
+PUT=attr_setget
+TRCFILE=ltrc.txt
+SHOWSYS=0
+
+[[ ! -f ${PUT} ]] && die "PUT (${PUT}) not found? Build and retry"
+
+while getopts ":Sh" opt; do
+  case ${opt} in
+    S)
+      #echo "-S option passed"
+      SHOWSYS=1
+      ;;
+    h)
+      usage; exit 0
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      ;;
+  esac
+done
+
+CMD="ltrace -o .tmp -f -ttt ./${PUT}"
+[[ ${SHOWSYS} -eq 1 ]] && CMD="ltrace -o .tmp -f -S -ttt ./${PUT}"
+eval ${CMD} || die "ltrace failed"
+ # -o : output file
+ # -f     Trace  child  processes  as  they  are  created  by currently traced
+ #        processes as a result of the fork(2) or clone(2) system calls.
+ #        The new process is attached immediately.
+ # -S     Display system calls as well as library calls
+ # -ttt   If  given  thrice, the time printed will include the microseconds and
+ #        the leading portion will be printed as the number of seconds since the epoch.
+
+# Process the ltrace report, separating out each thread's output
+runcmd "sort -k1n -k2n .tmp > ${TRCFILE}"
+echo "Done; report (sorted by TID and timestamp): ${TRCFILE}"
+exit 0
