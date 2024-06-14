@@ -66,7 +66,7 @@ LTRACE_ENABLE=-z lazy
 CFLAGS=-Wall -UDEBUG ${PROD_OPTLEVEL} -Werror=format-security ${CSTD} -D_POSIX_C_SOURCE=${POSIX_STD} ${STD_DEFS} -D_FORTIFY_SOURCE=2
 # Dynamic analysis includes the compiler itself!
 # Especially the powerful Address Sanitizer (ASAN) toolset
-CFLAGS_DBG=-g -ggdb -gdwarf-4 -O0 -Wall -Wextra -DDEBUG -fno-omit-frame-pointer -Werror=format-security ${CSTD} -D_POSIX_C_SOURCE=${POSIX_STD} ${STD_DEFS} -D_FORTIFY_SOURCE=2
+CFLAGS_DBG=-g -ggdb -gdwarf-4 -Og -Wall -Wextra -DDEBUG -fno-omit-frame-pointer -Werror=format-security ${CSTD} -D_POSIX_C_SOURCE=${POSIX_STD} ${STD_DEFS} -D_FORTIFY_SOURCE=2
 CFLAGS_DBG_ASAN=${CFLAGS_DBG} -fsanitize=address
 CFLAGS_DBG_UB=${CFLAGS_DBG} -fsanitize=undefined
 CFLAGS_DBG_MSAN=${CFLAGS_DBG} -fsanitize=memory
@@ -95,7 +95,7 @@ GENHTML := genhtml
 # 2. '2-part' production target 'prod_2part': -O2, no debug symbolic info, strip-debug;
 #     excellent for production as it gives ability to debug as and when required!
 #     (internally invokes the 'debug' target as it requires the debug binary as well
-# 3. 'debug' target(s): -O0, debug symbolic info (-g -ggdb), not stripped
+# 3. 'debug' target(s): -Og, debug symbolic info (-g -ggdb), not stripped
 prod: ${FNAME_C}.c
 	@echo
 	@echo "--- building 'production'-ready target (-O2, no debug, stripped) ---"
@@ -314,7 +314,7 @@ help:
 
 	@echo 'Regular targets ::'
 	@echo ' 1. 'prod'  : regular production target: -O2, no debug symbolic info, stripped'
-	@echo ' 2. 'debug' : -O0, debug symbolic info (-g -ggdb), not stripped'
+	@echo ' 2. 'debug' : -Og, debug symbolic info (-g -ggdb), not stripped'
 	@echo ' 3. 'prod_2part': production target : -O2, no debug symbolic info, strip-debug; \
     Excellent for production as it gives ability to debug as and when required! \
     (shown as third option as it *requires* the 'debug' build'

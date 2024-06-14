@@ -11,7 +11,14 @@
 # Kaiwan NB, kaiwanTECH.
 
 CC := ${CROSS_COMPILE}gcc
-DBG_FLAGS := -g -ggdb -gdwarf-4 -O0 -DDEBUG
+DBG_FLAGS := -g -ggdb -gdwarf-4 -Og -DDEBUG
+# Why -Og and not -O0?
+# man gcc
+# '... Optimize debugging experience.  -Og should be the optimization level of
+# choice for the standard edit-compile-debug cycle, offering a reasonable level
+# of  optimization  while maintaining  fast  compilation  and a good debugging
+# experience. It is a better choice than -O0 for producing debuggable code
+# because some compiler passes that collect debug information are disabled at -O0.'
 x86_ALL := 1_buggy_rel 1_buggy_dbg buggy-CORRECTED 1_buggy_sym_32 1_buggy_nosym_32 
 x86_all: ${x86_ALL}
 ARM_ALL := arm_1_buggy_nosym arm_1_buggy_sym arm_buggy_CORRECTED

@@ -26,7 +26,7 @@ ALL :=  membugs membugs_dbg membugs_dbg_asan membugs_dbg_msan membugs_dbg_ub
 CC=${CROSS_COMPILE}clang
 
 CFLAGS=-O2 -Wall -Wextra -UDEBUG
-CFLAGS_DBG=-g -O0 -Wall -Wextra -DDEBUG
+CFLAGS_DBG=-g -Og -Wall -Wextra -DDEBUG
 CFLAGS_DBG_ASAN=${CFLAGS_DBG} -fsanitize=address -fsanitize-address-use-after-scope
 CFLAGS_DBG_MSAN=${CFLAGS_DBG} -fsanitize=memory
 CFLAGS_DBG_UB=${CFLAGS_DBG} -fsanitize=undefined
