@@ -49,7 +49,7 @@ test1_fork()
 
 test2_matrixmul_pthrd()
 {
-  local PRG=./thrd_matrixmul #_dbg
+  local PRG=./thrd_matrixmul_dbg
   [[ ! -f ${PRG} ]] && die "Program \"${PRG}\" not found."
 
   echo "[+] test2_matrixmul_pthrd(): recording ... pl wait ..."
@@ -101,18 +101,38 @@ test4_fork_exit()
   # -a : sample across all cpu cores
 }
 
+menu()
+{
+echo "--------------- MENU --------------------
+
+Select a test case to run under perf:
+
+1. fork (via stress-ng)
+2. matrixmul pthread app
+3. CPU sched pthread demo app : without symbols
+4. CPU sched pthread demo app : with symbols
+5. fork-exit in loop app
+"
+read choice
+case ${choice} in
+  1) test1_fork
+     ;;
+  2) test2_matrixmul_pthrd
+     ;;
+  3) test3_cpusched_mt_demo 0  # without symbols
+     ;;
+  4) test3_cpusched_mt_demo 1  # with symbols (in the app only)
+     ;;
+  5) test4_fork_exit
+     ;;
+  *) echo "Invalid choice" ; exit 1
+esac
+}
+
 
 #--- 'main' ---
-[[ $(id -u) -ne 0 ]] && die echo "${name}: need root."
-test1_fork
-#test2_matrixmul_pthrd
-
-echo
-
-#test3_cpusched_mt_demo 0  # without symbols
-#test3_cpusched_mt_demo 1  # with symbols (in the app only)
-
-#test4_fork_exit()
-
+[[ $(id -u) -ne 0 ]] && die "${name}: need root."
+which stress-ng >/dev/null || die "pl install the stress-ng package"
+menu
 process_report
 exit 0
