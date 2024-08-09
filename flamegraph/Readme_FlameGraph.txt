@@ -26,6 +26,24 @@ Getting a decent FlameGraph REQUIRES:
   - symbols (can use a separate symbol file)
 
 
+===============
+Known Issues
+===============
+I came across this issue when the (orig) flamegraph Perl script on an Aarch64
+Yocto-based custom embedded Linux..:
+...
+Can't locate open.pm in @INC (you may need to install the open module) (@INC entries checked: /usr/lib/perl5/site_perl/5.38.2/aarch64-linux /usr/lib/perl5/site_perl/5.38.2 ...
+
+Brendan Gregg comment supon this very issue here:
+https://github.com/brendangregg/FlameGraph/issues/245
+
+The QUICK workaround:
+simply comment out this line in the original flamegraph.pl Perl script file:
+use open qw(:std :utf8);
+
+The dependency then disappears & it still works (albeit without UTF8)..
+
+
 ==================
 Example sessions:
 ==================
