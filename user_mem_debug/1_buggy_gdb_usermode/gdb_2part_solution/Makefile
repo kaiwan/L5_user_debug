@@ -9,7 +9,7 @@
 # code and cleanup, we incorporate targets to do useful (and indeed required)
 # stuff like:
 #  - prod_2part: build a '2-part' production target 'prod_2part'; it's
-#     -O2, no debug symbolic info, strip-debug;
+#     -O${PROD_OPTLEVEL}, no debug symbolic info, strip-debug;
 #     Excellent for production as it gives ability to debug as and when required!
 #  - indent: adhering to (Linux kernel) coding style guidelines (indent+checkpatch)
 #  - sa: static analysis target (via flawfinder, cppcheck)
@@ -49,43 +49,57 @@ CMDLINE_ARGS=""
 
 
 # Can remove the 'msan' one if it doesn't build - requires clang
-ALL_NM :=  ${FNAME_C} ${FNAME_C}_dbg ${FNAME_C}_dbg_asan ${FNAME_C}_dbg_ub ${FNAME_C}_dbg_lsan ${FNAME_C}_gcov ${FNAME_C}_dbg_msan
+ALL_NM :=  ${FNAME_C} ${FNAME_C}_dbg ${FNAME_C}_dbg_asan ${FNAME_C}_dbg_ub ${FNAME_C}_dbg_lsan ${FNAME_C}_gcov ${FNAME_C}_dbg_msan ${FNAME_C}_dbg_tsan
 
 # Decide which compiler to use; GCC doesn't support MSAN, clang does
-CC := gcc
+CC := ${CROSS_COMPILE}gcc
+LINKIN := -static-libasan   # use this lib for ASAN with GCC
 ifeq (, $(shell which clang))
   $(warning === WARNING! No clang (compiler) in PATH (reqd for MSAN); consider doing 'sudo apt install clang' or equivalent ===)
 else
   CC := clang
   LINKIN := -static-libsan
 endif
-CC := gcc
-LINKIN := -static-libasan
-$(info Compiler set to $(CC))
+CC := ${CROSS_COMPILE}gcc
+LINKIN := -static-libasan   # use this lib for ASAN with GCC
+$(info Compiler set to $(CC); LINKIN = $(LINKIN))
 
 STRIP=${CROSS_COMPILE}strip
+READELF=${CROSS_COMPILE}readelf
 OBJCOPY=${CROSS_COMPILE}objcopy
 
-PROD_OPTLEVEL=-O2
-  # -O<N>; N can be 0-3 or s (optimize for speed & size);
-  #  in the -D_FORTIFY_SOURCE=N option, set N to the same number
 CSTD=-ansi -std=c99 -std=c11 -std=c18  # the last one wins; else if unsupported, earlier ones...
 # For the meaning of the following feature test macros, see feature_test_macros(7)
 POSIX_STD=201112L
 STD_DEFS=-D_DEFAULT_SOURCE -D_GNU_SOURCE
 
 # Add this option switch to CFLAGS / CFLAGS_DBG if you want ltrace to work on Ubuntu!
+# (Although ltrace now works fine on recent versions of Ubuntu)
 LTRACE_ENABLE=-z lazy
 
-CFLAGS=-Wall -UDEBUG ${PROD_OPTLEVEL} -Werror=format-security ${CSTD} -D_POSIX_C_SOURCE=${POSIX_STD} ${STD_DEFS} -D_FORTIFY_SOURCE=${PROD_OPTLEVEL}
+PROD_OPTLEVEL=2
+  # -O<N>; N can be 0,1,2,3 or s (s: optimize for speed & size);
+  # NOTE: in the -D_FORTIFY_SOURCE=N option, you must set N to the same number
+
+WARNING_FLAGS=-Wall -Wextra -Wconversion -Wsign-conversion -Wshadow
+CFLAGS=${WARNING_FLAGS} -UDEBUG -O${PROD_OPTLEVEL} -Werror=format-security ${CSTD} -D_POSIX_C_SOURCE=${POSIX_STD} ${STD_DEFS} -D_FORTIFY_SOURCE=${PROD_OPTLEVEL}
 # Dynamic analysis includes the compiler itself!
 # Especially the powerful Address Sanitizer (ASAN) toolset
-CFLAGS_DBG=-g -ggdb -gdwarf-4 -Og -Wall -Wextra -DDEBUG -fno-omit-frame-pointer -Werror=format-security ${CSTD} -D_POSIX_C_SOURCE=${POSIX_STD} ${STD_DEFS}
+CFLAGS_DBG=-g -ggdb -gdwarf-4 -Og ${WARNING_FLAGS} -DDEBUG -fno-omit-frame-pointer -Werror=format-security ${CSTD} -D_POSIX_C_SOURCE=${POSIX_STD} ${STD_DEFS}
+# Why -Og and not -O0?
+# man gcc
+# '... Optimize debugging experience.  -Og should be the optimization level of
+# choice for the standard edit-compile-debug cycle, offering a reasonable level
+# of  optimization  while maintaining  fast  compilation  and a good debugging
+# experience. It is a better choice than -O0 for producing debuggable code
+# because some compiler passes that collect debug information are disabled at -O0.'
+
 # For MSan, don't use the -D_FORTIFY_SOURCE option
 CFLAGS_DBG_ASAN=${CFLAGS_DBG} -fsanitize=address -fsanitize-address-use-after-scope
 CFLAGS_DBG_UB=${CFLAGS_DBG} -fsanitize=undefined
 CFLAGS_DBG_MSAN=${CFLAGS_DBG} -fsanitize=memory -fPIE -pie
 CFLAGS_DBG_LSAN=${CFLAGS_DBG} -fsanitize=leak
+CFLAGS_DBG_TSAN=${CFLAGS_DBG} -fsanitize=thread
 
 CFLAGS_GCOV=${CFLAGS_DBG} -fprofile-arcs -ftest-coverage -lgcov
 LINK=  #-pthread
@@ -108,35 +122,38 @@ LCOV_SCRIPT := lcov_gen.sh
 
 # Targets and their rules
 # Three types:
-# 1. 'regular' production target 'prod': -O2, no debug symbolic info, stripped
-# 2. '2-part' production target 'prod_2part': -O2, no debug symbolic info, strip-debug;
+# 1. 'regular' production target 'prod': -O${PROD_OPTLEVEL}, no debug symbolic info, stripped
+# 2. '2-part' production target 'prod_2part': -O${PROD_OPTLEVEL}, no debug symbolic info, strip-debug;
 #     excellent for production as it gives ability to debug as and when required!
 #     (internally invokes the 'debug' target as it requires the debug binary as well
 # 3. 'debug' target(s): -Og, debug symbolic info (-g -ggdb), not stripped
 prod: ${FNAME_C}.c
 	@echo
-	@echo "--- building 'production'-ready target (-O2, no debug, stripped) ---"
+	@echo "--- building 'production'-ready target (-O${PROD_OPTLEVEL}, no debug, stripped) ---"
 	@echo " glibc (and NPTL) version: $(shell getconf GNU_LIBPTHREAD_VERSION|cut -d' ' -f2)"
 	@echo
 	${CC} ${CFLAGS} ${FNAME_C}.c -o ${FNAME_C} ${LINK}
-	${STRIP} --strip-debug ./${FNAME_C}
+	${STRIP} --strip-all ./${FNAME_C}
 
 # The '2-part executable' solution : use strip and objcopy to generate a
 # binary executable that has the ability to retrieve debug symbolic information
 # from the 'debug' binary!
 prod_2part: ${FNAME_C}.c
 	@echo
-	@echo "--- building 'production'-ready 2-part target (-O2, no debug, strip-debug) ---"
+	@echo "--- building 'production'-ready 2-part target (-O${PROD_OPTLEVEL}, no debug, strip-debug) ---"
 	@echo " glibc (and NPTL) version: $(shell getconf GNU_LIBPTHREAD_VERSION|cut -d' ' -f2)"
 	@echo
 # We require the 'debug' build for the 2part, so do that first
 	make --ignore-errors debug
+# Then make the regular production build
+	#make prod
 	${CC} ${CFLAGS} ${FNAME_C}.c -o ${FNAME_C} ${LINK}
 	${STRIP} --strip-debug ./${FNAME_C}
 # Most IMP, setup the 'debug link' in the release binary, pointing to the debug
 # info file; this, in effect, is the 2part solution!
 	${OBJCOPY} --add-gnu-debuglink=./${FNAME_C}_dbg ./${FNAME_C}
-	readelf --debug-dump ./${FNAME_C} | grep -A2 'debuglink'
+# verify it's setup
+	${READELF} --debug-dump ./${FNAME_C} | grep -A2 "debuglink"
 
 # 'debug' target: -Og, debug symbolic info (-g -ggdb), not stripped.
 # Generates the regular debug build, debug+ASAN, debug+UB, debug+LSAN, debug+MSAN builds'
@@ -154,12 +171,15 @@ debug: ${FNAME_C}.c
 	${CC} ${CFLAGS_DBG_ASAN} ${FNAME_C}.c -o ${FNAME_C}_dbg_asan ${LINK} ${LINKIN}
 	${CC} ${CFLAGS_DBG_UB} ${FNAME_C}.c -o ${FNAME_C}_dbg_ub ${LINK} ${LINKIN}
 # GCC doesn't support MSAN, clang does
-ifeq (gcc, $(CC))
-	$(warning === WARNING! No clang (compiler) in PATH (reqd for MSAN); consider doing 'sudo apt install clang' or equivalent ===)
-else
-	${CC} ${CFLAGS_DBG_MSAN} ${FNAME_C}.c -o ${FNAME_C}_dbg_msan ${LINK}
-endif
+	@echo
+	@echo "=== ALERT/FYI: GCC doesn't support MSAN, clang does ==="
+	@echo
 	${CC} ${CFLAGS_DBG_LSAN} ${FNAME_C}.c -o ${FNAME_C}_dbg_lsan ${LINK} ${LINKIN}
+# ThreadSanitizer (TSan):
+# For clang ver < 18.1.0 (Mar '24), need to set vm.mmap_rnd_bits sysctl to 28 (default is 32)
+# else it bombs on execution (ref: https://stackoverflow.com/a/77856955/779269)
+	sudo sysctl vm.mmap_rnd_bits=28
+	${CC} ${CFLAGS_DBG_TSAN} ${FNAME_C}.c -o ${FNAME_C}_dbg_tsan ${LINK} ${LINKIN}
 
 
 #--------------- More (useful) targets! -------------------------------
@@ -248,20 +268,23 @@ san:
 	@echo
 	@echo "--- dynamic analysis with the Address Sanitizer (ASAN) ---"
 	@echo
-#--- CHECK: have you populated the above CMDLINE_ARGS var with the required cmdline?
+	@if test -z "${CMDLINE_ARGS}"; then echo "\n@@@ (Possible) Warning: no parameters being passed to the program under test ${FNAME_C}_gcov ? @@@\n"; fi
 	./${FNAME_C}_dbg_asan ${CMDLINE_ARGS}
 
 	@echo
 	@echo "--- dynamic analysis with the Undefined Behavior Sanitizer (UBSAN) ---"
 	@echo
-#--- CHECK: have you populated the above CMDLINE_ARGS var with the required cmdline?
 	./${FNAME_C}_dbg_ub ${CMDLINE_ARGS}
 
 	@echo
 	@echo "--- dynamic analysis with the Memory Sanitizer (MSAN) ---"
 	@echo
-#--- CHECK: have you populated the above CMDLINE_ARGS var with the required cmdline?
 	./${FNAME_C}_dbg_msan ${CMDLINE_ARGS}
+
+	@echo
+	@echo "--- dynamic analysis with the Thread Sanitizer (TSAN) ---"
+	@echo
+	./${FNAME_C}_dbg_tsan ${CMDLINE_ARGS}
 
 # dynamic analysis run with LSan binary not done here (as ASan typically covers leakage)
 
@@ -353,13 +376,18 @@ clean:
 # rm some of the code coverage metadata
 	rm -rfv ${FNAME_C}_gcov *.[ch].gcov *.gcda *.gcno *.info
 
-	@echo "Note: Special case wrt the 'clean' target and the code coverage target (covg):"
-	@echo " It deliberately does NOT delete the LCOV metadata, intermediate and final LCOV coverage"
-	@echo " report folders - the ones named 0lcov_meta/, lcov_onerun_html/ and lcov_merged_html/ resp,"
-	@echo " as they're required to generate a merged / cumulative code coverage report."
-	@echo "To start code coverage analysis from scratch, you can either:"
-	@echo "- invoke the special 'make clean_lcov' (it manually delete these 3 folders), OR,"
-	@echo "- change the invocation of the lcov_gen.sh script in the Makefile, passing the -r option"
+	@if [ -d lcov_onerun_html ]; then \
+	  echo "------------------- NOTE: clean for lcov (covg target) ----------------------------" ;\
+	  echo "Special case wrt the 'clean' target and the code coverage target (covg):" ;\
+	  echo " It deliberately does NOT delete the LCOV metadata, intermediate and final LCOV coverage" ;\
+	  echo " report folders - the ones named 0lcov_meta/, lcov_onerun_html/ and lcov_merged_html/ resp," ;\
+	  echo " as they're required to generate a merged or cumulative code coverage report." ;\
+	  echo "So: to start code coverage analysis from scratch, you can either:" ;\
+	  echo "- Invoke the special 'make clean_lcov' (it manually delete these 3 folders)" ;\
+	  echo "  OR" ;\
+	  echo "- Change the invocation of the lcov_gen.sh script in the Makefile, passing the -r option" ;\
+	  echo "-----------------------------------------------------------------------------------" ;\
+	fi
 
 clean_lcov:
 	@echo
@@ -379,9 +407,9 @@ help:
 	@echo
 
 	@echo 'Regular targets ::'
-	@echo ' 1. 'prod'  : regular production target: -O2, no debug symbolic info, stripped'
+	@echo ' 1. 'prod'  : regular production target: -O${PROD_OPTLEVEL}, no debug symbolic info, stripped'
 	@echo ' 2. 'debug' : -Og, debug symbolic info (-g -ggdb), not stripped. Generates the regular debug build, debug+ASAN, debug+UB, debug+LSAN, debug+MSAN builds'
-	@echo ' 3. 'prod_2part': production target : -O2, no debug symbolic info, strip-debug; \
+	@echo ' 3. 'prod_2part': production target : -O${PROD_OPTLEVEL}, no debug symbolic info, strip-debug; \
     Excellent for production as it gives ability to debug as and when required! \
     (shown as third option as it *requires* the 'debug' build as a step'
 	@echo
@@ -402,7 +430,7 @@ help:
 	@echo
 	@echo '--- dynamic analysis targets ---'
 	@echo ' valgrind   : run the dynamic analysis tool ($(VALGRIND)) on the binary executable'
-	@echo ' san        : run dynamic analysis via ASAN, UBSAN and MSAN tooling on the binary executable'
+	@echo ' san        : run dynamic analysis via ASAN, UBSAN, MSAN and TSAN tooling on the binary executable'
 
 	@echo
 	@echo '--- code coverage ---'
