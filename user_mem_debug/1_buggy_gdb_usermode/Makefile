@@ -19,10 +19,11 @@ DBG_FLAGS := -g -ggdb -gdwarf-4 -Og -DDEBUG
 # of  optimization  while maintaining  fast  compilation  and a good debugging
 # experience. It is a better choice than -O0 for producing debuggable code
 # because some compiler passes that collect debug information are disabled at -O0.'
-x86_ALL := 1_buggy_rel 1_buggy_dbg buggy-CORRECTED 1_buggy_sym_32 1_buggy_nosym_32 
+x86_ALL := 1_buggy_rel 1_buggy_dbg 1_buggy_asan 1_buggy_lsan 1_buggy_tsan   #buggy-CORRECTED 1_buggy_sym_32 1_buggy_nosym_32 
 x86_all: ${x86_ALL}
 ARM_ALL := arm_1_buggy_nosym arm_1_buggy_sym arm_buggy_CORRECTED
 arm_all: ${ARM_ALL}
+all : ${x86_ALL}
 
 1_buggy_dbg: 1_buggy.c
 	${CC} ${DBG_FLAGS} 1_buggy.c -o 1_buggy_dbg -Wall
