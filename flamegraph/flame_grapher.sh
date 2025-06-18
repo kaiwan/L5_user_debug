@@ -37,12 +37,14 @@ Optional switches:
                    Good for performance outliers (who's eating CPU? using max stack?); works well for multi-threaded apps
                 chart  = produce a flame chart (sort by time, do not merge stacks)
                    Good for seeing all calls; works well for single-threaded apps
- [-f <frequency>] : frequency (HZ) to have perf sample the system/process at [default=${HZ}]
+ [-f <freq>]  : frequency (HZ) to have perf sample the system/process at [default=${HZ}]
                       Too high a value here can cause issues
  -h|-?        : show this help screen.
 
-Note that the FlameGraph SVG (and perf.data file) are stored in the volatile ${PERF_RESULT_DIR_BASE} dir;
-copy them to a non-volatile location to save them."
+NOTE:
+- After pressing ^C to stop, please be patient... it can take a while to process.
+- The FlameGraph SVG (and perf.data file) are stored in the volatile ${PERF_RESULT_DIR_BASE} dir;
+  copy them to a non-volatile location to save them."
 }
 
 function die
@@ -65,8 +67,8 @@ which perf >/dev/null 2>&1 || {
 }
 [ ! -d ${FLMGR} ] && {
  echo "${name}: I find that the original FlameGraph GitHub repo isn't installed.
- You need to (one-time) install it...
- In your terminal window/shell, type (including the parentheses):
+ You need to (one-time) install it (under your home dir).
+ In your terminal window/shell, type (including the parentheses) -OR- simply copy-paste the line below:
  (cd; git clone https://github.com/brendangregg/FlameGraph)"
  exit 1
 }
@@ -131,7 +133,11 @@ done
 shift $((OPTIND-1))
 
 [ -z "${OUTFILE}" ] && {
-		usage ; exit 1
+  usage ; exit 1
+}
+[[ "${OUTFILE}" = *"."* ]] && {
+        echo "Please ONLY specify the name of the SVG file; do NOT put any extension"
+        exit 1
 }
 
 SVG=${OUTFILE}.svg
