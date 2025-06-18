@@ -5,25 +5,25 @@ github.com/brendangregg/FlameGraph
 
 For the developer's convenience, we provide a wrapper to generate CPU FlameGraphs.
 Run the flame_grapher.sh script, follow instructions.
-The result is a rendered SVG file - the FlameGraph!. 
+The result is a rendered SVG file - the FlameGraph!
 You can view it in a web browser.
 
 The *style* of the flamegraph can be one of:
-- regular: 'upward-growing', or
-- icicle : 'downward-growing' [default]
-This script keeps icicle-style as the default as it's technically correct; on
-pretty much all modern arch's (CPUs) stacks grown towards lower (virual) addresses!
-You can change it by changing:
-flame_grapher.sh:STYLE_INVERTED_ICICLE=1  to the value 0.
+- regular: 'upward-growing' [the default], or
+- icicle : 'downward-growing'
+You can change it by editing the script:
+flame_grapher.sh:STYLE_INVERTED_ICICLE=0  to the value 1.
 
 =========
 IMP NOTE
 =========
 Getting a decent FlameGraph REQUIRES:
-- frame pointers (-fomit-frame-pointer is the typical GCC flag!)
-  - possible exception case is the Linux kernel itself; it has intelligent
+- Frame Pointers (-fomit-frame-pointer is the typical GCC flag!
+    Use the -fno-omit-frame-pointer in your build; it doesn't guarantee FP's
+    are used though..
+  - Possible exception case is the Linux kernel itself; it has intelligent
     algorithms to emit an accurate stack trace even in the absence of frame pointers
-  - symbols (can use a separate symbol file)
+  - Symbols (can use a separate symbol file)
 
 
 ===============
@@ -34,7 +34,7 @@ Yocto-based custom embedded Linux..:
 ...
 Can't locate open.pm in @INC (you may need to install the open module) (@INC entries checked: /usr/lib/perl5/site_perl/5.38.2/aarch64-linux /usr/lib/perl5/site_perl/5.38.2 ...
 
-Brendan Gregg comment supon this very issue here:
+Brendan Gregg comments upon this very issue here:
 https://github.com/brendangregg/FlameGraph/issues/245
 
 The QUICK workaround:
@@ -49,9 +49,23 @@ Example sessions:
 ==================
 
 $ ./flame_grapher.sh 
-Usage: flame_grapher.sh [process-PID-to-sample] svg-out-filename (without .svg)
- No PID implies the entire system is sampled...
-flame_grapher.sh --help , to show this help screen.
+Usage: flame_grapher.sh -o svg-out-filename(without .svg) [options ...]
+  -o svg-out-filename(without .svg) : name of SVG file to generate (saved under /tmp/flamegraphs/)
+Optional switches:
+ [-p PID]     : PID = generate a FlameGraph for ONLY this process or thread
+                 If not passed, the *entire system* is sampled...
+ [-s <style>] : normal = draw the stack frames growing upward   [default]
+                icicle = draw the stack frames growing downward
+ [-t <type>]  : graph  = produce a flame graph (X axis is NOT time, merges stacks) [default]
+                   Good for performance outliers (who's eating CPU? using max stack?); works well for multi-threaded apps
+                chart  = produce a flame chart (sort by time, do not merge stacks)
+                   Good for seeing all calls; works well for single-threaded apps
+ [-f <freq>]  : frequency (HZ) to have perf sample the system/process at [default=99]
+                      Too high a value here can cause issues
+ -h|-?        : show this help screen.
+
+Note that the FlameGraph SVG (and perf.data file) are stored in the volatile /tmp/flamegraphs dir;
+copy them to a non-volatile location to save them.
 $ 
 
 
