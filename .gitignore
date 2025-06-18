@@ -50,3 +50,14 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+flamegraph/results/
+flamegraph/*.svg
+
+../coverage_test/0lcov_meta/*
+../coverage_test/0lcov_meta/lcovmeta_*/*
+../coverage_test/lcov_merged_html/
+../coverage_test/lcov_merged_html/*
+../coverage_test/lcov_onerun_html/
+../coverage_test/lcov_onerun_html/*
+
