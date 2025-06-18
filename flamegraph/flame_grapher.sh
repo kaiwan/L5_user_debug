@@ -11,7 +11,7 @@
 # Kaiwan N Billimoria
 # (c) 2016,2022 kaiwanTECH
 # License: MIT
-name=$(basename $0)
+name=$(basename "$0")
 export FLMGR=~/FlameGraph  # location of code
 PERF_RESULT_DIR_BASE=/tmp/flamegraphs # change to make it non-volatile
 STYLE_INVERTED_ICICLE=0
@@ -76,7 +76,7 @@ which perf >/dev/null 2>&1 || {
   usage
   exit 1
 }
-[ $1 = "--help" ] && {
+[ "$1" = "--help" ] && {
   usage
   exit 0
 }
@@ -96,7 +96,7 @@ do
  	        PID=${OPTARG}
 	        #echo "-p passed; PID=${PID}"
 		# Check if PID is valid
-		sudo kill -0 ${PID} 2>/dev/null
+		sudo kill -0 "${PID}" 2>/dev/null
 		[ $? -ne 0 ] && {
 			echo "${name}: PID ${PID} is an invalid (or dead) process/thread?"
 			exit 1
@@ -105,15 +105,15 @@ do
 	  s)
 	        STYLE=${OPTARG}
 	        #echo "-s passed; STYLE=${STYLE}"
-		if [ "${STYLE}" != "normal" -a  "${STYLE}" != "icicle" ]; then
+		if [ "${STYLE}" != "normal" ] && [ "${STYLE}" != "icicle" ]; then
 			usage ; exit 1
 		fi
-		[ "${STYLE}" = "normal" ] && STYLE_INVERTED_ICICLE=0
+		[ "${STYLE}" = "icicle" ] && STYLE_INVERTED_ICICLE=1
 		    ;;
 	  t)
  	        TYPE=${OPTARG}
 	        #echo "-f passed; TYPE=${TYPE}"
-		if [ "${TYPE}" != "graph" -a  "${TYPE}" != "chart" ]; then
+		if [ "${TYPE}" != "graph" ] && [ "${TYPE}" != "chart" ]; then
 			usage ; exit 1
 		fi
 		[ "${TYPE}" = "chart" ] && TYPE_CHART=1
@@ -148,19 +148,19 @@ trap 'ls -lh perf.data; cd ${TOPDIR}; sync ; ./2flameg.sh ${PDIR} ${SVG} ${STYLE
 #trap 'cd ${TOPDIR}; echo Aborting run... ; sync ; exit 1' QUIT
 #---
 
-mkdir -p ${PDIR} || die "mkdir -p ${PDIR}"
-sudo chown -R ${LOGNAME}:${LOGNAME} ${PERF_RESULT_DIR_BASE} 2>/dev/null
-cd ${PDIR}
+mkdir -p "${PDIR}" || die "mkdir -p ${PDIR}"
+sudo chown -R "${LOGNAME}":"${LOGNAME}" ${PERF_RESULT_DIR_BASE} 2>/dev/null
+cd "${PDIR}" || echo "*Warning* cd to ${PDIR} failed"
 
 if [ ! -z "${PID}" ]; then  #------------------ Profile a particular process
  echo "### ${name}: recording samples on process PID ${PID} now...
  Press ^C to stop..."
- sudo perf record -F ${HZ} --call-graph dwarf -p ${PID} || exit 1  # generates perf.data
+ sudo perf record -F "${HZ}" --call-graph dwarf -p "${PID}" || exit 1  # generates perf.data
 else                        #---------------- Profile system-wide
  echo "### ${name}: recording samples system-wide now...
  Press ^C to stop..."
- sudo perf record -F ${HZ} --call-graph dwarf -a || exit 1  # generates perf.data
+ sudo perf record -F "${HZ}" --call-graph dwarf -a || exit 1  # generates perf.data
 fi
-cd ${TOPDIR}
+cd ${TOPDIR} || echo "*Warning* cd to ${TOPDIR} failed"
 
 #exit 0  # this exit causes the 'trap' to run (as we've trapped the EXIT!)
