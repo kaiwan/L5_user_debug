@@ -88,46 +88,46 @@ while getopts "${optspec}" opt
 do
     #echo "opt=${opt} optarg=${OPTARG}"
     case "${opt}" in
-			  o)
-	 	        OUTFILE=${OPTARG}
-		        #echo "-o passed; OUTFILE=${OUTFILE}"
-			    ;;
-			  p)
-	 	        PID=${OPTARG}
-		        #echo "-p passed; PID=${PID}"
-				# Check if PID is valid
-				sudo kill -0 ${PID} 2>/dev/null
-			    [ $? -ne 0 ] && {
-			      echo "${name}: PID ${PID} is an invalid (or dead) process/thread?"
-			      exit 1
-			    }
-			    ;;
-			  s)
-	 	        STYLE=${OPTARG}
-		        #echo "-s passed; STYLE=${STYLE}"
-				if [ "${STYLE}" != "normal" -a  "${STYLE}" != "icicle" ]; then
-					usage ; exit 1
-				fi
-				[ "${STYLE}" = "normal" ] && STYLE_INVERTED_ICICLE=0
-			    ;;
-			  t)
-	 	        TYPE=${OPTARG}
-		        #echo "-f passed; TYPE=${TYPE}"
-				if [ "${TYPE}" != "graph" -a  "${TYPE}" != "chart" ]; then
-					usage ; exit 1
-				fi
-				[ "${TYPE}" = "chart" ] && TYPE_CHART=1
-			    ;;
-			  f)
-	 	        HZ=${OPTARG}
-		        echo "-f passed; HZ=${HZ}"
-			    ;;
-			  h|?)
-			    usage
-				exit 0
-				;;
-			  *) echo "Unknown option '-${OPTARG}'" ; usage; exit 1
-				;;
+	  o)
+ 	        OUTFILE=${OPTARG}
+	        #echo "-o passed; OUTFILE=${OUTFILE}"
+		    ;;
+	  p)
+ 	        PID=${OPTARG}
+	        #echo "-p passed; PID=${PID}"
+		# Check if PID is valid
+		sudo kill -0 ${PID} 2>/dev/null
+		[ $? -ne 0 ] && {
+			echo "${name}: PID ${PID} is an invalid (or dead) process/thread?"
+			exit 1
+		}
+	    ;;
+	  s)
+	        STYLE=${OPTARG}
+	        #echo "-s passed; STYLE=${STYLE}"
+		if [ "${STYLE}" != "normal" -a  "${STYLE}" != "icicle" ]; then
+			usage ; exit 1
+		fi
+		[ "${STYLE}" = "normal" ] && STYLE_INVERTED_ICICLE=0
+		    ;;
+	  t)
+ 	        TYPE=${OPTARG}
+	        #echo "-f passed; TYPE=${TYPE}"
+		if [ "${TYPE}" != "graph" -a  "${TYPE}" != "chart" ]; then
+			usage ; exit 1
+		fi
+		[ "${TYPE}" = "chart" ] && TYPE_CHART=1
+	    ;;
+	  f)
+ 	        HZ=${OPTARG}
+	        echo "-f passed; HZ=${HZ}"
+	    ;;
+	  h|?)
+	    usage
+	    exit 0
+	    ;;
+	  *) echo "Unknown option '-${OPTARG}'" ; usage; exit 1
+		;;
   	  esac
 done
 shift $((OPTIND-1))
@@ -139,7 +139,6 @@ shift $((OPTIND-1))
         echo "Please ONLY specify the name of the SVG file; do NOT put any extension"
         exit 1
 }
-
 SVG=${OUTFILE}.svg
 PDIR=${PERF_RESULT_DIR_BASE}/${OUTFILE}
 TOPDIR=${PWD}
