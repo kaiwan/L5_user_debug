@@ -12,12 +12,13 @@
 # Kaiwan N Billimoria, kaiwanTECH
 # License: MIT
 
-# 3 params passed:
+# 4 params passed:
 # $1 : result folder
 # $2 : SVG filename
 # $3 : style to draw graph in
 #        0 => regular
 #        1 => icicle (downward-growing!)
+# $4 : cmdline str passed, if any (if -c option's used this is non-NULL)
 name=$(basename $0)
 #echo "#p = $# p= $*"
 
@@ -30,8 +31,7 @@ tok=$(ps -o stat= -p $PPID)  # yields 'S+' via script and 'Ss' via cmdline
  exit 1
 }
 [ $# -lt 4 ] && {
-# echo "${name}: should be invoked by the flame_grapher.sh script, not directly!"
- echo "Usage: ${name} result-folder SVG-filename style-to-display(1 for icicle) type(1 for FlameChart)"
+ echo "Usage: ${name} result-folder SVG-filename style-to-display(1 for icicle) type(1 for FlameChart) [cmdline]"
  exit 1
 }
 
@@ -46,6 +46,7 @@ INFILE=perf.data
 OUTFILE=${2}
 STYLE=${3}
 TYPE=${4}
+CMD="${5}"
 
 [ ! -f ${INFILE} ] && {
   echo "${name} : perf data file ${INFILE} invalid? Aborting..."
@@ -93,7 +94,10 @@ else
 	 TITLE="${TITLE}Graph ${OUTFILE}; style is flamegraph (merged stacks)"
 	 NOTES="${NOTES}FlameGraph, type normal"
   }
-  sudo perf script --input ${INFILE} | ${FLMGR}/stackcollapse-perf.pl | \
+fi
+[[ -n "${CMD}" ]] && TITLE="${TITLE} ; cmdline: ${CMD}"
+
+sudo perf script --input ${INFILE} | ${FLMGR}/stackcollapse-perf.pl | \
 	  ${FLMGR}/flamegraph.pl --title "${TITLE}" --subtitle "${OUTFILE}" --inverted ${PTYPE} \
 	  --notes "${NOTES}" --width ${WIDTH} > ${OUTFILE} || {
      echo "${name}: failed."

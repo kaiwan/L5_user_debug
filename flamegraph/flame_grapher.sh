@@ -28,16 +28,21 @@ usage()
   echo "Usage: ${name} -o svg-out-filename(without .svg) [options ...]
   -o svg-out-filename(without .svg) : name of SVG file to generate (saved under ${PERF_RESULT_DIR_BASE}/)
 Optional switches:
- [-p PID]     : PID = generate a FlameGraph for ONLY this process or thread
-                 If not passed, the *entire system* is sampled...
- [-s <style>] : normal = draw the stack frames growing upward   [default]
-                icicle = draw the stack frames growing downward
- [-t <type>]  : graph  = produce a flame graph (X axis is NOT time, merges stacks) [default]
-                   Good for performance outliers (who's eating CPU? using max stack?); works well for multi-threaded apps
-                chart  = produce a flame chart (sort by time, do not merge stacks)
-                   Good for seeing all calls; works well for single-threaded apps
- [-f <freq>]  : frequency (HZ) to have perf sample the system/process at [default=${HZ}]
-                      Too high a value here can cause issues
+ [-c \"command\"]: \"command\" = Generate a FlameGraph for ONLY this command-line (it's process's/threads)
+                             You MUST specify the command to run within quotes.
+                             If neither -c nor -p is passed, the *entire system* is sampled...
+ [-p PID]     : PID        = Generate a FlameGraph for ONLY this process or thread
+                             If neither -c nor -p is passed, the *entire system* is sampled...
+ Note: -c \"cmd\" and -p PID are mutually exclusive options; you can specify only one of them.
+ [-s <style>] : normal     = Draw the stack frames growing upward   [default]
+                icicle     = Draw the stack frames growing downward
+ [-t <type>]  : graph      = Produce a flame graph (X axis is NOT time, merges stacks) [default]
+                             Good for performance outliers (who's eating CPU? using max stack?);
+			     works well for multi-threaded apps
+                chart      = Produce a flame chart (sort by time, do not merge stacks)
+                             Good for seeing all calls; works well for single-threaded apps
+ [-f <freq>]  : freq (HZ)  = Have perf sample the system/process at [default=${HZ}]
+                             Too high a value here can cause issues
  -h|-?        : show this help screen.
 
 NOTE:
@@ -72,7 +77,7 @@ which perf >/dev/null 2>&1 || die "${name}: perf not installed? Aborting...
 }
 
 #--- getopts processing
-optspec=":o:p:s:t:f:h?" # a : after an arg implies it expects an argument
+optspec=":o:c:p:s:t:f:h?" # a : after an arg implies it expects an argument
 unset PID
 while getopts "${optspec}" opt
 do
@@ -81,6 +86,10 @@ do
 	  o)
  	        OUTFILE=${OPTARG}
 	        #echo "-o passed; outfile=${OUTFILE}"
+		;;
+	  c)
+		CMD="${OPTARG}"
+	        #echo "-c passed; cmd=${CMD}"
 		;;
 	  p)
  	        PID=${OPTARG}
@@ -128,8 +137,8 @@ SVG=${OUTFILE}.svg
 PDIR=${PERF_RESULT_DIR_BASE}/${OUTFILE}
 TOPDIR=${PWD}
 
-#--- Run the part 2 - generating the FG - on interrupt or exit
-trap 'ls -lh perf.data; cd ${TOPDIR}; sync ; ./2flameg.sh ${PDIR} ${SVG} ${STYLE_INVERTED_ICICLE} ${TYPE_CHART}' INT EXIT
+#--- Run the part 2 - generating the FG - on interrupt or exit !
+trap 'ls -lh perf.data; cd ${TOPDIR}; sync ; ./2flameg.sh ${PDIR} ${SVG} ${STYLE_INVERTED_ICICLE} ${TYPE_CHART} "${CMD}"' INT EXIT
 #trap 'cd ${TOPDIR}; echo Aborting run... ; sync ; exit 1' QUIT
 #---
 
@@ -137,14 +146,24 @@ mkdir -p "${PDIR}" || die "mkdir -p ${PDIR}"
 sudo chown -R "${LOGNAME}":"${LOGNAME}" ${PERF_RESULT_DIR_BASE} 2>/dev/null
 cd "${PDIR}" || echo "*Warning* cd to ${PDIR} failed"
 
-if [ ! -z "${PID}" ]; then  #------------------ Profile a particular process
+MSG_CMDLINE_STOP="Please DO allow the command to complete ...
+If you Must stop it, press ^C ...
+ *NOTE* After pressing ^C to stop it, PLEASE be patient... it can take a while to process..."
+MSG_STOP="Press ^C to stop...
+ *NOTE* After pressing ^C to stop, PLEASE be patient... it can take a while to process..."
+
+if [ ! -z "${CMD}" ]; then  #------------------ Profile a particular command-line
+ echo "### ${name}: recording samples on the command \"${CMD}\" now...
+ ${MSG_CMDLINE_STOP}"
+ sudo perf record -F "${HZ}" --call-graph dwarf ${CMD} || exit 1	# generates perf.data
+elif [ ! -z "${PID}" ]; then  #------------------ Profile a particular process
  echo "### ${name}: recording samples on process PID ${PID} now...
- Press ^C to stop..."
- sudo perf record -F "${HZ}" --call-graph dwarf -p "${PID}" || exit 1  # generates perf.data
+ ${MSG_STOP}"
+ sudo perf record -F "${HZ}" --call-graph dwarf -p "${PID}" || exit 1	# generates perf.data
 else                        #---------------- Profile system-wide
  echo "### ${name}: recording samples system-wide now...
- Press ^C to stop..."
- sudo perf record -F "${HZ}" --call-graph dwarf -a || exit 1  # generates perf.data
+ ${MSG_STOP}"
+ sudo perf record -F "${HZ}" --call-graph dwarf -a || exit 1		# generates perf.data
 fi
 cd ${TOPDIR} || echo "*Warning* cd to ${TOPDIR} failed"
 
