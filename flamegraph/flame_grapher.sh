@@ -8,8 +8,7 @@
 #
 # CREDITS: Brendan Gregg, for the original & simply superb FlameGraph
 #
-# Kaiwan N Billimoria
-# (c) 2016,2022 kaiwanTECH
+# Kaiwan N Billimoria, kaiwanTECH
 # License: MIT
 name=$(basename "$0")
 export FLMGR=~/FlameGraph  # location of code
@@ -81,8 +80,8 @@ do
     case "${opt}" in
 	  o)
  	        OUTFILE=${OPTARG}
-	        #echo "-o passed; OUTFILE=${OUTFILE}"
-		    ;;
+	        #echo "-o passed; outfile=${OUTFILE}"
+		;;
 	  p)
  	        PID=${OPTARG}
 	        #echo "-p passed; PID=${PID}"
@@ -97,7 +96,7 @@ do
 			usage ; exit 1
 		fi
 		[ "${STYLE}" = "icicle" ] && STYLE_INVERTED_ICICLE=1
-		    ;;
+		;;
 	  t)
  	        TYPE=${OPTARG}
 	        #echo "-f passed; TYPE=${TYPE}"
@@ -105,16 +104,16 @@ do
 			usage ; exit 1
 		fi
 		[ "${TYPE}" = "chart" ] && TYPE_CHART=1
-	    ;;
+		;;
 	  f)
  	        HZ=${OPTARG}
 	        echo "-f passed; HZ=${HZ}"
-	    ;;
+		;;
 	  h|?)
-	    usage
-	    exit 0
-	    ;;
-	  *) echo "Unknown option '-${OPTARG}'" ; usage; exit 1
+		 usage
+		 exit 0
+		;;
+	  *)	echo "Unknown option '-${OPTARG}'" ; usage; exit 1
 		;;
   	  esac
 done
