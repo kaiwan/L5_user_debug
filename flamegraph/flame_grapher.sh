@@ -49,29 +49,20 @@ NOTE:
 
 function die
 {
-echo >&2 "$@"
+echo >&2 "${name}: *FATAL*  $@"
 exit 1
 }
 
 
 ### "main" here
 
-which perf >/dev/null 2>&1 || {
- echo "${name}: perf not installed? Aborting...
+which perf >/dev/null 2>&1 || die "${name}: perf not installed? Aborting...
  Tip- (Deb/Ubuntu) sudo apt install linux-tools-$(uname -r) linux-tools-generic"
- exit 1
-}
-[ ! -f ./2flameg.sh ] && {
- echo "${name}: the part-2 script 2flameg.sh is missing? Aborting..."
- exit 1
-}
-[ ! -d ${FLMGR} ] && {
- echo "${name}: I find that the original FlameGraph GitHub repo isn't installed.
+[ ! -f ./2flameg.sh ] && die "The part-2 script 2flameg.sh is missing? Aborting..."
+[ ! -d ${FLMGR} ] && die "I find that the original FlameGraph GitHub repo isn't installed.
  You need to (one-time) install it (under your home dir).
  In your terminal window/shell, type (including the parentheses) -OR- simply copy-paste the line below:
  (cd; git clone https://github.com/brendangregg/FlameGraph)"
- exit 1
-}
 [ $# -lt 1 ] && {
   usage
   exit 1
@@ -97,11 +88,8 @@ do
 	        #echo "-p passed; PID=${PID}"
 		# Check if PID is valid
 		sudo kill -0 "${PID}" 2>/dev/null
-		[ $? -ne 0 ] && {
-			echo "${name}: PID ${PID} is an invalid (or dead) process/thread?"
-			exit 1
-		}
-	    ;;
+		[ $? -ne 0 ] && die "PID ${PID} is an invalid (or dead) process/thread?"
+		;;
 	  s)
 	        STYLE=${OPTARG}
 	        #echo "-s passed; STYLE=${STYLE}"
@@ -135,10 +123,8 @@ shift $((OPTIND-1))
 [ -z "${OUTFILE}" ] && {
   usage ; exit 1
 }
-[[ "${OUTFILE}" = *"."* ]] && {
-        echo "Please ONLY specify the name of the SVG file; do NOT put any extension"
-        exit 1
-}
+[[ "${OUTFILE}" = *"."* ]] && die "Please ONLY specify the name of the SVG file; do NOT put any extension"
+[[ -n ${PID} ]] && [[ -n ${CMD} ]] && die "Specify EITHER the command-to-run (-c) OR the process PID (-p), not both"
 SVG=${OUTFILE}.svg
 PDIR=${PERF_RESULT_DIR_BASE}/${OUTFILE}
 TOPDIR=${PWD}
