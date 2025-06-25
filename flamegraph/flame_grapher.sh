@@ -11,13 +11,17 @@
 # Kaiwan N Billimoria, kaiwanTECH
 # License: MIT
 name=$(basename "$0")
-export FLMGR=~/FlameGraph  # location of code
-PERF_RESULT_DIR_BASE=/tmp/flamegraphs # change to make it non-volatile
+PDIR=$(which $0)
+[ -z "${PDIR}" ] && PDIR=$(dirname $0)  # true if this script isn't in PATH
+export PFX=$(dirname ${PDIR})		# dir in which this script and tools reside
+export FLMGR=~/FlameGraph		# location of original BGregg's FlameGraph repo code
+PERF_RESULT_DIR_BASE=/tmp/flamegraphs	# change to make it non-volatile
 STYLE_INVERTED_ICICLE=0
 TYPE_CHART=0
 HZ=99
 
-# TODO - 
+# TODO
+#  [*] add -c cmdline option
 #  [ ] add -d duration param
 #  [ ] show current config on run
 # ISSUES
@@ -26,7 +30,7 @@ HZ=99
 usage()
 {
   echo "Usage: ${name} -o svg-out-filename(without .svg) [options ...]
-  -o svg-out-filename(without .svg) : name of SVG file to generate (saved under ${PERF_RESULT_DIR_BASE}/)
+  -o svg-out-filename(without .svg) : MANDATORY: name of SVG file to generate (saved under ${PERF_RESULT_DIR_BASE}/)
 Optional switches:
  [-c \"command\"]: \"command\" = Generate a FlameGraph for ONLY this command-line (it's process's/threads)
                              You MUST specify the command to run within quotes.
@@ -62,7 +66,8 @@ exit 1
 
 which perf >/dev/null 2>&1 || die "${name}: perf not installed? Aborting...
  Tip- (Deb/Ubuntu) sudo apt install linux-tools-$(uname -r) linux-tools-generic"
-[ ! -f ./2flameg.sh ] && die "The part-2 script 2flameg.sh is missing? Aborting..."
+[ ! -f ${PFX}/2flameg.sh ] && die "The part-2 script 2flameg.sh is missing? Aborting..."
+#[ ! -f ./2flameg.sh ] && die "The part-2 script 2flameg.sh is missing? Aborting..."
 [ ! -d ${FLMGR} ] && die "I find that the original FlameGraph GitHub repo isn't installed.
  You need to (one-time) install it (under your home dir).
  In your terminal window/shell, type (including the parentheses) -OR- simply copy-paste the line below:
@@ -135,7 +140,7 @@ shift $((OPTIND-1))
 [[ -n ${PID} ]] && [[ -n ${CMD} ]] && die "Specify EITHER the command-to-run (-c) OR the process PID (-p), not both"
 SVG=${OUTFILE}.svg
 PDIR=${PERF_RESULT_DIR_BASE}/${OUTFILE}
-TOPDIR=${PWD}
+TOPDIR=${PFX}
 
 #--- Run the part 2 - generating the FG - on interrupt or exit !
 trap 'ls -lh perf.data; cd ${TOPDIR}; sync ; ./2flameg.sh ${PDIR} ${SVG} ${STYLE_INVERTED_ICICLE} ${TYPE_CHART} "${CMD}"' INT EXIT
