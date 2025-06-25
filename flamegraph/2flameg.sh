@@ -81,10 +81,10 @@ NOTES="notes text: "
 if [ ${STYLE} -eq 0 ] ; then
    [ ${TYPE} -eq 0 ] && {
      TITLE="${TITLE}Graph ${OUTFILE} ; style is normal (upward-growing stacks), type is graph"
-	 NOTES="${NOTES}FlameGraph, type normal"
+     NOTES="${NOTES}FlameGraph, type normal"
    } || {
      TITLE="${TITLE}Graph ${OUTFILE} ; style is normal (upward-growing stacks), type is chart"
-	 NOTES="${NOTES}FlameGraph, type chart"
+     NOTES="${NOTES}FlameGraph, type chart"
    }
    sudo perf script --input ${INFILE} | ${FLMGR}/stackcollapse-perf.pl | \
 	  ${FLMGR}/flamegraph.pl  --title "${TITLE}" --subtitle "${OUTFILE}" ${PTYPE} \
