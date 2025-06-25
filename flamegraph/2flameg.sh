@@ -1,6 +1,6 @@
 #!/bin/bash
 # 2flameg.sh
-# INVOKED from flame_grapher.sh
+# INVOKED from flame_grapher.sh via trap to INTerrupt ^C or EXIT !
 # Generate a CPU FlameGraph !
 #
 # CPU FlameGraph wrapper script.
@@ -9,8 +9,7 @@
 #
 # CREDITS: Brendan Gregg, for the original & simply superb FlameGraph
 #
-# Kaiwan N Billimoria
-# (c) 2016,2022 kaiwanTECH
+# Kaiwan N Billimoria, kaiwanTECH
 # License: MIT
 
 # 3 params passed:
@@ -27,7 +26,7 @@ name=$(basename $0)
 tok=$(ps -o stat= -p $PPID)  # yields 'S+' via script and 'Ss' via cmdline
 #echo "${tok}"
 [ "${tok:1:1}" = "s" ] && {
- echo "${name}: should be invoked by the flame_grapher.sh script, not directly!"
+ echo "${name}: This script should ONLY be invoked by the flame_grapher.sh script, not directly!"
  exit 1
 }
 [ $# -lt 4 ] && {
@@ -86,12 +85,6 @@ if [ ${STYLE} -eq 0 ] ; then
      TITLE="${TITLE}Graph ${OUTFILE} ; style is normal (upward-growing stacks), type is chart"
      NOTES="${NOTES}FlameGraph, type chart"
    }
-   sudo perf script --input ${INFILE} | ${FLMGR}/stackcollapse-perf.pl | \
-	  ${FLMGR}/flamegraph.pl  --title "${TITLE}" --subtitle "${OUTFILE}" ${PTYPE} \
-	  --notes "${NOTES}" --width ${WIDTH} > ${OUTFILE} || {
-     echo "${name}: failed."
-     exit 1
-   }
 else
   [ ${TYPE} -eq 1 ] && {
 	 TITLE="${TITLE}Chart ${OUTFILE}; style is flamechart (all stacks, X-axis is timeline)"
@@ -105,8 +98,7 @@ else
 	  --notes "${NOTES}" --width ${WIDTH} > ${OUTFILE} || {
      echo "${name}: failed."
      exit 1
-  }
-fi
+}
 
 USERNM=$(echo ${LOGNAME})
 sudo chown -R ${USERNM}:${USERNM} ${TOPDIR}/${1}/ 2>/dev/null
