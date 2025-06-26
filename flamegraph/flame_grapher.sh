@@ -10,6 +10,11 @@
 #
 # Kaiwan N Billimoria, kaiwanTECH
 # License: MIT
+
+# Turn on unofficial Bash 'strict mode'! V useful
+# "Convert many kinds of hidden, intermittent, or subtle bugs into immediate, glaringly obvious errors"
+# ref: http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
 name=$(basename "$0")
 PDIR=$(which $0)
 [ -z "${PDIR}" ] && PDIR=$(dirname $0)  # true if this script isn't in PATH
@@ -84,6 +89,8 @@ which perf >/dev/null 2>&1 || die "${name}: perf not installed? Aborting...
 #--- getopts processing
 optspec=":o:c:p:s:t:f:h?" # a : after an arg implies it expects an argument
 unset PID
+# To prevent shellcheck's 'unbound variable' error:
+OUTFILE="" ; CMD="" ; PID="" #; STYLE=""; TYPE=""; HZ=""
 while getopts "${optspec}" opt
 do
     #echo "opt=${opt} optarg=${OPTARG}"
