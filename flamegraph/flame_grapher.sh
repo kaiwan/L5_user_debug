@@ -15,6 +15,7 @@
 # "Convert many kinds of hidden, intermittent, or subtle bugs into immediate, glaringly obvious errors"
 # ref: http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
+
 name=$(basename "$0")
 PDIR=$(which "$0")
 [ -z "${PDIR}" ] && PDIR=$(dirname "$0")  # true if this script isn't in PATH
@@ -25,6 +26,8 @@ STYLE_INVERTED_ICICLE=0
 TYPE_CHART=0
 HZ=99
 
+source colors.sh
+
 # TODO
 #  [*] add -c cmdline option
 #  [ ] add -d duration param
@@ -34,35 +37,51 @@ HZ=99
 
 usage()
 {
-  echo "Usage: ${name} -o svg-out-filename(without .svg) [options ...]
-  -o svg-out-filename(without .svg) : MANDATORY: name of SVG file to generate (saved under ${PERF_RESULT_DIR_BASE}/)
-Optional switches:
- [-c \"command\"]: \"command\" = Generate a FlameGraph for ONLY this command-line (it's process's/threads)
-                             You MUST specify the command to run within quotes.
-                             If neither -c nor -p is passed, the *entire system* is sampled...
- [-p PID]     : PID        = Generate a FlameGraph for ONLY this process or thread
-                             If neither -c nor -p is passed, the *entire system* is sampled...
- Note: -c \"cmd\" and -p PID are mutually exclusive options; you can specify only one of them.
- [-s <style>] : normal     = Draw the stack frames growing upward   [default]
-                icicle     = Draw the stack frames growing downward
- [-t <type>]  : graph      = Produce a flame graph (X axis is NOT time, merges stacks) [default]
-                             Good for performance outliers (who's eating CPU? using max stack?);
-			     works well for multi-threaded apps
-                chart      = Produce a flame chart (sort by time, do not merge stacks)
-                             Good for seeing all calls; works well for single-threaded apps
- [-f <freq>]  : freq (HZ)  = Have perf sample the system/process at [default=${HZ}]
-                             Too high a value here can cause issues
- -h|-?        : show this help screen.
+  red_fg "Usage: ${name} -o SVG-out-filename(without .svg) [options ...]
+  -o svg-out-filename(without .svg) : MANDATORY; the name of the SVG file to generate (saved under ${PERF_RESULT_DIR_BASE}/<SVG-out-filename>)
 
+Generate a CPU Flame Graph"
+  echo "
+Options:
+ -h|-?           Show this help screen and exit
+ -c \"command\"    Generate a Flame Graph for ONLY this command-line (it's process's/threads)
+                 You MUST specify multi-word commands within quotes; f.e. \"ls -laR\" (see Examples)"
+  gray_fg "                 NOTE: If a program named 'foo' with a parameter named 'param1' in the current dir is to be executed, 
+                       don't give -c \"./foo param1\", instead give it as: -c \"\$(pwd)/foo param1\""
+  echo "
+ -p PID          Generate a Flame Graph for ONLY this process or thread"
+  gray_fg "                 NOTE: * If neither -c nor -p is passed, the *entire system* is sampled...
+                       * -c \"cmd\" and -p PID are mutually exclusive options; you can specify only one of them."
+  echo "
+ -s <style> : normal     Draw the stack frames growing upward   [default]
+              icicle     Draw the stack frames growing downward
+ -t <type>  : graph      Produce a Flame Graph (X axis is NOT time, merges stacks) [default]
+                          -good for performance outliers (who's eating CPU? using max stack?);
+			  -works well for multi-threaded apps
+              chart      Produce a Flame Chart (sort by time, do not merge stacks)
+                          -good for seeing all calls; works well for single-threaded apps
+ -f <freq>  :            Have perf sample the system/process at [default=${HZ}]
+                          -too high a value here can cause issues."
+  gray_fg "
 NOTE:
 - After pressing ^C to stop, please be patient... it can take a while to process.
-- The FlameGraph SVG (and perf.data file) are stored in the volatile ${PERF_RESULT_DIR_BASE} dir;
+- The FlameGraph SVG (and perf.data file) are stored in the volatile ${PERF_RESULT_DIR_BASE}/<SVG-out-filename> dir;
   copy them to a non-volatile location to save them."
+
+  blue_fg "
+Examples:"
+  echo "
+  ${name} -o whole_system                      # Sample the *entire system* and generate the FG (in ${PERF_RESULT_DIR_BASE}/whole_system/whole_system.svg)
+  ${name} -o ls-laR-usr -c \"ls -laR /usr\"      # Run the cmd \"ls -laR /usr\" and generate the FG (in ${PERF_RESULT_DIR_BASE}/la-laR-usr/ls-laR-usr.svg)
+  ${name} -o ps-efwww -c \"ps -efwww\" -t chart    #  Run the cmd \"ps -efwww\" and generate a Flame *Chart* (in ${PERF_RESULT_DIR_BASE}/ps-efwww/ps-efwww.svg)
+  PID=\$(pgrep --oldest gitg); ${name} -p \${PID} -s icicle -f200 -o gitg_whatrudoing
+    # Sample the 'gitg' process (at 200 Hz), generate the 'icicle' style FG (in ${PERF_RESULT_DIR_BASE}/gitg_whatrudoing/gitg_whatrudoing.svg)
+"
 }
 
 function die
 {
-echo >&2 "${name}: *FATAL*  $@"
+red_highlight >&2 "${name}: *FATAL*  $*"
 exit 1
 }
 
@@ -88,7 +107,6 @@ which perf >/dev/null 2>&1 || die "${name}: perf not installed? Aborting...
 
 #--- getopts processing
 optspec=":o:c:p:s:t:f:h?" # a : after an arg implies it expects an argument
-unset PID
 # To prevent shellcheck's 'unbound variable' error:
 OUTFILE="" ; CMD="" ; PID="" #; STYLE=""; TYPE=""; HZ=""
 while getopts "${optspec}" opt
@@ -143,7 +161,7 @@ shift $((OPTIND-1))
 [ -z "${OUTFILE}" ] && {
   usage ; exit 1
 }
-[[ "${OUTFILE}" = *"."* ]] && die "Please ONLY specify the name of the SVG file; do NOT put any extension"
+[[ "${OUTFILE}" = *"."* ]] && die "Please ONLY specify the name of the SVG file; do NOT put any extension (give xyz not xyz.svg)"
 [[ -n ${PID} ]] && [[ -n ${CMD} ]] && die "Specify EITHER the command-to-run (-c) OR the process PID (-p), not both"
 SVG=${OUTFILE}.svg
 PDIR=${PERF_RESULT_DIR_BASE}/${OUTFILE}
@@ -151,7 +169,7 @@ TOPDIR=$(pwd)
 #red_fg "pwd = $(pwd); TOPDIR=${TOPDIR}; PFX=${PFX}"
 
 #--- Run the part 2 - generating the FG - on interrupt or exit !
-trap 'ls -lh perf.data; cd ${TOPDIR}; sync ; ./2flameg.sh ${PDIR} ${SVG} ${STYLE_INVERTED_ICICLE} ${TYPE_CHART} "${CMD}"' INT EXIT
+trap 'ls -lh ${PDIR}/perf.data; cd ${TOPDIR}; sync ; ${PFX}/2flameg.sh ${PDIR} ${SVG} ${STYLE_INVERTED_ICICLE} ${TYPE_CHART} "${CMD}"' INT EXIT
 #trap 'cd ${TOPDIR}; echo Aborting run... ; sync ; exit 1' QUIT
 #---
 
