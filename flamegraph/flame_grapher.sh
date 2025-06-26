@@ -16,9 +16,9 @@
 # ref: http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -euo pipefail
 name=$(basename "$0")
-PDIR=$(which $0)
-[ -z "${PDIR}" ] && PDIR=$(dirname $0)  # true if this script isn't in PATH
-export PFX=$(dirname ${PDIR})		# dir in which this script and tools reside
+PDIR=$(which "$0")
+[ -z "${PDIR}" ] && PDIR=$(dirname "$0")  # true if this script isn't in PATH
+export PFX=$(dirname "${PDIR}")		# dir in which this script and tools reside
 export FLMGR=~/FlameGraph		# location of original BGregg's FlameGraph repo code
 PERF_RESULT_DIR_BASE=/tmp/flamegraphs	# change to make it non-volatile
 STYLE_INVERTED_ICICLE=0
@@ -147,7 +147,8 @@ shift $((OPTIND-1))
 [[ -n ${PID} ]] && [[ -n ${CMD} ]] && die "Specify EITHER the command-to-run (-c) OR the process PID (-p), not both"
 SVG=${OUTFILE}.svg
 PDIR=${PERF_RESULT_DIR_BASE}/${OUTFILE}
-TOPDIR=${PFX}
+TOPDIR=$(pwd)
+#red_fg "pwd = $(pwd); TOPDIR=${TOPDIR}; PFX=${PFX}"
 
 #--- Run the part 2 - generating the FG - on interrupt or exit !
 trap 'ls -lh perf.data; cd ${TOPDIR}; sync ; ./2flameg.sh ${PDIR} ${SVG} ${STYLE_INVERTED_ICICLE} ${TYPE_CHART} "${CMD}"' INT EXIT
