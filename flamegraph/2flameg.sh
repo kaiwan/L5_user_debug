@@ -95,14 +95,27 @@ else
 	 NOTES="${NOTES}FlameGraph, type normal"
   }
 fi
+
+#set -x
 [[ -n "${CMD}" ]] && TITLE="${TITLE} ; cmdline: ${CMD}"
 
-sudo perf script --input ${INFILE} | ${FLMGR}/stackcollapse-perf.pl | \
-	  ${FLMGR}/flamegraph.pl --title "${TITLE}" --subtitle "${OUTFILE}" --inverted ${PTYPE} \
+if [[ ${STYLE} -eq 0 ]] ; then
+  sudo perf script --input ${INFILE} | ${FLMGR}/stackcollapse-perf.pl | \
+     ${FLMGR}/flamegraph.pl --title "${TITLE}" --subtitle "${OUTFILE}" ${PTYPE} \
 	  --notes "${NOTES}" --width ${WIDTH} > ${OUTFILE} || {
-     echo "${name}: failed."
-     exit 1
-}
+	echo "${name}: failed."
+	exit 1
+  }
+elif [[ ${STYLE} -eq 1 ]] ; then  # add the --inverted option
+  sudo perf script --input ${INFILE} | ${FLMGR}/stackcollapse-perf.pl | \
+     ${FLMGR}/flamegraph.pl --title "${TITLE}" --subtitle "${OUTFILE}" ${PTYPE} \
+	  --notes "${NOTES}" --width ${WIDTH} --inverted > ${OUTFILE} || {
+	echo "${name}: failed."
+	exit 1
+  }
+fi
+# NOPE it doesn't work when i tried to place all the opts in a variable!
+# [[ ${STYLE} -eq 1 ]] && FLAMEGRAPH_PERL_OPTS="${FLAMEGRAPH_PERL_OPTS} --inverted"
 
 USERNM=$(echo ${LOGNAME})
 sudo chown -R ${USERNM}:${USERNM} ${TOPDIR}/${1}/ 2>/dev/null
