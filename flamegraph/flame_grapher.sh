@@ -29,11 +29,11 @@ HZ=99
 source colors.sh
 
 # TODO
-#  [*] add -c cmdline option
+#  [+] add -c cmdline option
 #  [ ] add -d duration param
-#  [ ] show current config on run
+#  [+] show current config on run
 # ISSUES
-#  [ ] why does 2flameg.sh seem to run twice?? the 'exit' and ^C ?
+#  [X] why does 2flameg.sh seem to run twice?? the 'exit' and ^C ?
 
 usage()
 {
@@ -74,8 +74,8 @@ Examples:"
   ${name} -o whole_system                      # Sample the *entire system* and generate the FG (in ${PERF_RESULT_DIR_BASE}/whole_system/whole_system.svg)
   ${name} -o ls-laR-usr -c \"ls -laR /usr\"      # Run the cmd \"ls -laR /usr\" and generate the FG (in ${PERF_RESULT_DIR_BASE}/la-laR-usr/ls-laR-usr.svg)
   ${name} -o ps-efwww -c \"ps -efwww\" -t chart    #  Run the cmd \"ps -efwww\" and generate a Flame *Chart* (in ${PERF_RESULT_DIR_BASE}/ps-efwww/ps-efwww.svg)
-  PID=\$(pgrep --oldest gitg); ${name} -p \${PID} -s icicle -f200 -o gitg_whatrudoing
-    # Sample the 'gitg' process (at 200 Hz), generate the 'icicle' style FG (in ${PERF_RESULT_DIR_BASE}/gitg_whatrudoing/gitg_whatrudoing.svg)
+  PID=\$(pgrep --oldest git); ${name} -p \${PID} -s icicle -f200 -o git_whatrudoing
+    # Sample the 'git' process (at 200 Hz), generate the 'icicle' style FG (in ${PERF_RESULT_DIR_BASE}/git_whatrudoing/git_whatrudoing.svg)
 "
 }
 
@@ -137,7 +137,7 @@ which perf >/dev/null 2>&1 || die "${name}: perf not installed? Aborting...
 #--- getopts processing
 optspec=":o:c:p:s:t:f:h?" # a : after an arg implies it expects an argument
 # To prevent shellcheck's 'unbound variable' error:
-OUTFILE="" ; CMD="" ; PID="" #; STYLE=""; TYPE=""; HZ=""
+OUTFILE="" ; CMD="" ; PID=""
 while getopts "${optspec}" opt
 do
     #echo "opt=${opt} optarg=${OPTARG}"
@@ -148,14 +148,13 @@ do
 		;;
 	  c)
 		CMD="${OPTARG}"
-	        #echo "-c passed; cmd=${CMD}"
+		#echo "-c passed; cmd=\"${CMD}\""
 		;;
 	  p)
  	        PID=${OPTARG}
 	        #echo "-p passed; PID=${PID}"
 		# Check if PID is valid
-		sudo kill -0 "${PID}" 2>/dev/null
-		[ $? -ne 0 ] && die "PID ${PID} is an invalid (or dead) process/thread?"
+		sudo kill -0 "${PID}" 2>/dev/null || die "PID ${PID} is an invalid (or dead) process/thread?"
 		;;
 	  s)
 	        STYLE=${OPTARG}
@@ -175,11 +174,11 @@ do
 		;;
 	  f)
  	        HZ=${OPTARG}
-	        echo "-f passed; HZ=${HZ}"
+	        #echo "-f passed; HZ=${HZ}"
 		;;
 	  h|?)
-		 usage
-		 exit 0
+		usage
+		exit 0
 		;;
 	  *)	echo "Unknown option '-${OPTARG}'" ; usage; exit 1
 		;;
@@ -189,7 +188,7 @@ shift $((OPTIND-1))
 
 [ -z "${OUTFILE}" ] && {
   usage ; exit 1
-}
+} || true
 [[ "${OUTFILE}" = *"."* ]] && die "Please ONLY specify the name of the SVG file; do NOT put any extension (give xyz not xyz.svg)"
 [[ -n ${PID} ]] && [[ -n ${CMD} ]] && die "Specify EITHER the command-to-run (-c) OR the process PID (-p), not both"
 SVG=${OUTFILE}.svg
@@ -197,13 +196,13 @@ PDIR=${PERF_RESULT_DIR_BASE}/${OUTFILE}
 TOPDIR=$(pwd)
 #red_fg "pwd = $(pwd); TOPDIR=${TOPDIR}; PFX=${PFX}"
 
-#--- Run the part 2 - generating the FG - on interrupt or exit !
+#--- Get Ready to run the part 2 - generating the FG - on interrupt (^C) or exit !
 trap 'ls -lh ${PDIR}/perf.data; cd ${TOPDIR}; sync ; ${PFX}/2flameg.sh ${PDIR} ${SVG} ${STYLE_INVERTED_ICICLE} ${TYPE_CHART} "${CMD}"' INT EXIT
 #trap 'cd ${TOPDIR}; echo Aborting run... ; sync ; exit 1' QUIT
 #---
 
 mkdir -p "${PDIR}" || die "mkdir -p ${PDIR}"
-sudo chown -R "${LOGNAME}":"${LOGNAME}" ${PERF_RESULT_DIR_BASE} 2>/dev/null
+sudo chown -R "${LOGNAME}":"${LOGNAME}" ${PERF_RESULT_DIR_BASE} 2>/dev/null || true
 cd "${PDIR}" || echo "*Warning* cd to ${PDIR} failed"
 
 display_opts
