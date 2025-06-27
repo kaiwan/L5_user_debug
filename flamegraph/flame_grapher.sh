@@ -85,6 +85,35 @@ red_highlight >&2 "${name}: *FATAL*  $*"
 exit 1
 }
 
+display_opts()
+{
+local opts=""
+
+opts="- SVG file will be generated here: ${PERF_RESULT_DIR_BASE}/${OUTFILE}/${OUTFILE}.svg"
+[[ -n "${CMD}" ]] && opts="${opts}
+- Command run: \"${CMD}\""
+[[ -n "${PID}" ]] && opts="${opts}
+- Process with PID ${PID} sampled"
+if [[ ${STYLE_INVERTED_ICICLE} -eq 0 ]] ; then
+   opts="${opts}
+- Flame Graph with upward-growing stacks [default]"
+elif [[ ${STYLE_INVERTED_ICICLE} -eq 1 ]] ; then
+   opts="${opts}
+- Flame Graph with downward-growing stacks / icicles" 
+fi
+if [[ ${TYPE_CHART} -eq 0 ]] ; then
+   opts="${opts}
+- Regular Flame Graph: merged stacks, X-axis is alphabetical, >> rectangle width shows outlier(s) [default]"
+elif [[ ${TYPE_CHART} -eq 1 ]] ; then
+   opts="${opts}
+- Flame Chart: all stacks, X-axis is timeline"
+fi
+
+blue_fg "Current Options:
+${opts}
+"
+}
+
 
 ### "main" here
 
@@ -176,6 +205,8 @@ trap 'ls -lh ${PDIR}/perf.data; cd ${TOPDIR}; sync ; ${PFX}/2flameg.sh ${PDIR} $
 mkdir -p "${PDIR}" || die "mkdir -p ${PDIR}"
 sudo chown -R "${LOGNAME}":"${LOGNAME}" ${PERF_RESULT_DIR_BASE} 2>/dev/null
 cd "${PDIR}" || echo "*Warning* cd to ${PDIR} failed"
+
+display_opts
 
 MSG_CMDLINE_STOP="Please DO allow the command to complete ...
 If you Must stop it, press ^C ...
