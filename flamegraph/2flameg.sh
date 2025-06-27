@@ -12,15 +12,22 @@
 # Kaiwan N Billimoria, kaiwanTECH
 # License: MIT
 
-# 4 params passed:
+# 5 params passed:
 # $1 : result folder
 # $2 : SVG filename
 # $3 : style to draw graph in
 #        0 => regular
 #        1 => icicle (downward-growing!)
-# $4 : cmdline str passed, if any (if -c option's used this is non-NULL)
+# $4 : type of FG
+#        0 => regular Flame *Graph* ; merged stack; X-axis is alphabetical (good for MT, shows outliers)
+#        1 => Flame *Chart* ; all stacks; X-axis is timeline (ok for single-threaded)
+# $5 : cmdline str passed, if any (if -c option's used this is non-NULL)
 name=$(basename $0)
 #echo "$0: #p = $# ; parms: $*"
+# f.e. output is:
+# #p = 5 ; parms: /tmp/flamegraphs/psla2 psla2.svg 0 0 ps -LA
+# 5 params!               $1                $2     $ $   $5
+#                                                  3 4
 
 # Find whether run from the command-line !
 # ref: https://stackoverflow.com/a/4262107/779269
@@ -76,28 +83,31 @@ WIDTH=1900  # can make it v large; you'll just have to scroll horizontally...
 TITLE="CPU mixed-mode Flame"
 # ${name} result-folder SVG-filename style-to-display(1 for icicle) type(1 for FlameChart)" [cmdline]
 #            p1               p2           p3:STYLE                      p4:TYPE            p5:cmdline
+
+#echo "******************** OPTS = ${opts}"
+
 [ ${TYPE} -eq 1 ] && PTYPE=--flamechart
 NOTES="notes text: "
 if [ ${STYLE} -eq 0 ] ; then   # normal upward-growing stacks [default]
    [ ${TYPE} -eq 0 ] && {
-     TITLE="${TITLE}Graph ${OUTFILE} ; style is normal (upward-growing stacks), type is graph"
-     NOTES="${NOTES}FlameGraph, type normal"
+     TITLE="${TITLE}Graph ${OUTFILE}; style is normal (upward-growing stacks), type is Graph (merged stacks)"
+     NOTES="${NOTES}CPU mixed-mode Flame Graph, type normal"
    } || {
-     TITLE="${TITLE}Graph ${OUTFILE} ; style is normal (upward-growing stacks), type is chart"
-     NOTES="${NOTES}FlameGraph, type chart"
+     TITLE="${TITLE}Graph ${OUTFILE}; style is normal (upward-growing stacks), type is Chart (all stacks)"
+     NOTES="${NOTES}CPU mixed-mode Flame Graph, type chart"
    }
 else
   [ ${TYPE} -eq 1 ] && {   # icicle: downward-growing stacks
-	 TITLE="${TITLE}Chart ${OUTFILE}; style is flamechart (all stacks, X-axis is timeline)"
-	 NOTES="${NOTES}FlameChart, type flamechart"
+	 TITLE="${TITLE}Chart ${OUTFILE}; style is Flame Chart (all stacks, X-axis is timeline)"
+	 NOTES="${NOTES}CPU mixed-mode Flame Chart, type flamechart"
   } || {
-	 TITLE="${TITLE}Graph ${OUTFILE}; style is flamegraph (merged stacks)"
-	 NOTES="${NOTES}FlameGraph, type normal"
+	 TITLE="${TITLE}Graph ${OUTFILE}; style is Flame Graph (merged stacks)"
+	 NOTES="${NOTES}CPU mixed-mode Flame Graph, type normal"
   }
 fi
 
 #set -x
-[[ -n "${CMD}" ]] && TITLE="${TITLE} ; cmdline: ${CMD}"
+[[ -n "${CMD}" ]] && TITLE="${TITLE}; cmdline: \"${CMD}\""
 
 if [[ ${STYLE} -eq 0 ]] ; then
   sudo perf script --input ${INFILE} | ${FLMGR}/stackcollapse-perf.pl | \
