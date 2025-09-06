@@ -117,6 +117,7 @@ ${opts}
 
 ### "main" here
 
+# prereqs
 which perf >/dev/null 2>&1 || die "${name}: perf not installed? Aborting...
  Tip- (Deb/Ubuntu) sudo apt install linux-tools-$(uname -r) linux-tools-generic"
 [ ! -f ${PFX}/2flameg.sh ] && die "The part-2 script 2flameg.sh is missing? Aborting..."
@@ -125,6 +126,12 @@ which perf >/dev/null 2>&1 || die "${name}: perf not installed? Aborting...
  You need to (one-time) install it (under your home dir).
  In your terminal window/shell, type (including the parentheses) -OR- simply copy-paste the line below:
  (cd; git clone https://github.com/brendangregg/FlameGraph)"
+
+# RedHat-like distros are often missing the perl-open package, req by the FlameGraph perl script
+lsb_release -i|egrep -i "RedHat|Alma|Rocky" && {
+  yum list installed|grep perl-open >/dev/null || sudo yum install perl-open.noarch
+}
+
 [ $# -lt 1 ] && {
   usage
   exit 1
