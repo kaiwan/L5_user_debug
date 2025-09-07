@@ -27,16 +27,15 @@ process_report()
 {
   echo "
 [+] Reporting ..."
-  runcmd "perf report --sort cpu,comm --stdio"
-  runcmd "perf script -i perf.data > profile_data.txt"
-  chown ${LOGNAME}:${LOGNAME} profile_data.txt
-# TIP: we've exported the trace to a file; u can try
+  runcmd "perf report --sort cpu,comm --stdio-color"
+  #runcmd "perf script -i perf.data > profile_data.txt"
+  #chown ${LOGNAME}:${LOGNAME} profile_data.txt
 }
 trap process_report INT QUIT
 
-test1_fork()
+test1_malloc()
 {
-  echo "[+] test1_fork(): recording ... pl wait for time of ${TIME} ..."
+  echo "[+] test1_malloc(): recording ... pl wait for time of ${TIME} ..."
   runcmd "perf record -F ${SAMPLING_FREQ} \
 	-C 0 \
 	--call-graph dwarf \
@@ -49,8 +48,11 @@ test1_fork()
 
 test2_matrixmul_pthrd()
 {
-  local PRG=./thrd_matrixmul_dbg
-  [[ ! -f ${PRG} ]] && die "Program \"${PRG}\" not found."
+ local PRG=./thrd_matrixmul_dbg
+ cd matrixmul/thrd_matrixmul
+ [[ ! -f ${PRG} ]] && {
+    make thrd_matrixmul_dbg || die "failed"
+ }
 
   echo "[+] test2_matrixmul_pthrd(): recording ... pl wait ..."
   runcmd "perf record -F ${SAMPLING_FREQ} \
@@ -78,6 +80,10 @@ test3_cpusched_mt_demo()
   } || {
     echo "WITH symbols ***"
   }
+ cd sched_pthrd_rtprio
+ [[ ! -f ${PRG} ]] && {
+    make || die "failed"
+ }
   [[ ! -f ${PRG} ]] && die "Program \"${PRG}\" not found."
 
   echo "[+] test3_cpusched_mt_demo(): recording ... pl wait ..."
@@ -90,10 +96,29 @@ test3_cpusched_mt_demo()
 
 test4_fork_exit()
 {
-  local PRG=./fork_test_dbg
-  [[ ! -f ${PRG} ]] && die "Program \"${PRG}\" not found."
+ local PRG=./fork_test_dbg
+ cd fork_pthrd_test/
+ [[ ! -f ${PRG} ]] && {
+    make fork_test_dbg || die "failed"
+ }
 
   echo "[+] test4_fork_exit(): recording ... pl wait ..."
+  runcmd "perf record -F ${SAMPLING_FREQ} \
+	-C 1 \
+	--call-graph dwarf \
+	-- taskset 02 ${PRG}"
+  # -a : sample across all cpu cores
+}
+
+test5_pthread_exit()
+{
+ local PRG=./pthread_test_dbg
+ cd fork_pthrd_test
+ [[ ! -f ${PRG} ]] && {
+    make pthread_test_dbg || die "failed"
+ }
+
+  echo "[+] test5_pthread_exit(): recording ... pl wait ..."
   runcmd "perf record -F ${SAMPLING_FREQ} \
 	-C 1 \
 	--call-graph dwarf \
@@ -107,15 +132,17 @@ echo "--------------- MENU --------------------
 
 Select a test case to run under perf:
 
-1. fork (via stress-ng)
+1. malloc() stress test (via stress-ng)
 2. matrixmul pthread app
 3. CPU sched pthread demo app : without symbols
 4. CPU sched pthread demo app : with symbols
 5. fork-exit in loop app
+6. pthread-exit in loop app
+7. Quit
 "
 read choice
 case ${choice} in
-  1) test1_fork
+  1) test1_malloc
      ;;
   2) test2_matrixmul_pthrd
      ;;
@@ -124,6 +151,10 @@ case ${choice} in
   4) test3_cpusched_mt_demo 1  # with symbols (in the app only)
      ;;
   5) test4_fork_exit
+     ;;
+  6) test5_pthread_exit
+     ;;
+  7) echo "Exiting..." ; exit 0
      ;;
   *) echo "Invalid choice" ; exit 1
 esac
