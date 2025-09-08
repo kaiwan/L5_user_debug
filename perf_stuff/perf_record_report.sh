@@ -42,11 +42,9 @@ test1_malloc()
 {
   echo "[+] test1_malloc(): recording ... pl wait for time of ${TIME} ..."
   runcmd "perf record -F ${SAMPLING_FREQ} \
-	-C 0 \
 	--call-graph dwarf \
 	-- taskset 01 stress-ng --malloc 1 \
 	-t ${TIME}"
-  # -C 0 : only on cpu #0
   process_report
 }
 
