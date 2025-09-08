@@ -15,7 +15,7 @@ exit 1
 #   $1 ... : params are the command to run
 runcmd()
 {
-	[ $# -eq 0 ] && return
+	[[ $# -eq 0 ]] && return
 	echo "$@"
 	eval "$@"
 }
@@ -25,11 +25,16 @@ TIME=10s
 
 process_report()
 {
+  local SPEEDSCOPE_FILE="callstacks4speedscope_${FUNCNAME[1]}.txt"
   echo "
 [+] Reporting ..."
   runcmd "perf report --sort cpu,comm --stdio-color"
-  #runcmd "perf script -i perf.data > profile_data.txt"
-  #chown ${LOGNAME}:${LOGNAME} profile_data.txt
+  # Can examine the callstacks (flamegraph/flamechart?) in speedscope
+  # https://www.speedscope.app/
+  runcmd "perf script -i perf.data > ${SPEEDSCOPE_FILE}"
+  chown ${LOGNAME}:${LOGNAME} ${SPEEDSCOPE_FILE}
+  ls -l $(realpath ${SPEEDSCOPE_FILE})
+  echo "> Open this file in the speedscope web app https://www.speedscope.app/"
 }
 trap process_report INT QUIT
 
@@ -42,8 +47,7 @@ test1_malloc()
 	-- taskset 01 stress-ng --malloc 1 \
 	-t ${TIME}"
   # -C 0 : only on cpu #0
-	#-- taskset 01 stress-ng --fork 1 \
-	#-- taskset 01 stress-ng --io 1 \
+  process_report
 }
 
 test2_matrixmul_pthrd()
@@ -60,6 +64,7 @@ test2_matrixmul_pthrd()
 	--call-graph dwarf \
 	-- ${PRG}"
   # -a : sample across all cpu cores
+  process_report
 }
 
 #--
@@ -92,6 +97,7 @@ test3_cpusched_mt_demo()
 	--call-graph dwarf \
 	-- taskset 01 ${PRG} ${ARGS}"
   # -C 0 : only on cpu #0
+  process_report
 }
 
 test4_fork_exit()
@@ -107,7 +113,8 @@ test4_fork_exit()
 	-C 1 \
 	--call-graph dwarf \
 	-- taskset 02 ${PRG}"
-  # -a : sample across all cpu cores
+  # -C 1 : only on cpu #1
+  process_report
 }
 
 test5_pthread_exit()
@@ -123,7 +130,8 @@ test5_pthread_exit()
 	-C 1 \
 	--call-graph dwarf \
 	-- taskset 02 ${PRG}"
-  # -a : sample across all cpu cores
+  # -C 1 : only on cpu #1
+  process_report
 }
 
 menu()
@@ -138,7 +146,8 @@ Select a test case to run under perf:
 4. CPU sched pthread demo app : with symbols
 5. fork-exit in loop app
 6. pthread-exit in loop app
-7. Quit
+7. Clean (remove all perf.data* and speedscope* files)
+8. Quit
 "
 read choice
 case ${choice} in
@@ -154,7 +163,9 @@ case ${choice} in
      ;;
   6) test5_pthread_exit
      ;;
-  7) echo "Exiting..." ; exit 0
+  7) find . -type f \( -name "perf.data*" -o -name "callstacks4speedscope*" \) -delete
+     ;;
+  8) echo "Exiting..." ; exit 0
      ;;
   *) echo "Invalid choice" ; exit 1
 esac
@@ -165,5 +176,4 @@ esac
 [[ $(id -u) -ne 0 ]] && die "${name}: need root."
 which stress-ng >/dev/null || die "pl install the stress-ng package"
 menu
-process_report
 exit 0
