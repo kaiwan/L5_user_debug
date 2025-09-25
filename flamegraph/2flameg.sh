@@ -23,11 +23,29 @@
 #        1 => Flame *Chart* ; all stacks; X-axis is timeline (ok for single-threaded)
 # $5 : cmdline str passed, if any (if -c option's used this is non-NULL)
 name=$(basename $0)
+source colors.sh
 #echo "$0: #p = $# ; parms: $*"
 # f.e. output is:
 # #p = 5 ; parms: /tmp/flamegraphs/psla2 psla2.svg 0 0 ps -LA
 # 5 params!               $1                $2     $ $   $5
 #                                                  3 4
+
+# Can examine the callstacks (flamegraph/flamechart?) in speedscope
+# https://www.speedscope.app/
+speedscope_gen()
+{
+cd ${RES_DIR} || exit 1
+local SPEEDSCOPE_FILE="speedscope_${OUTFILE::-4}.txt"
+#echo "sudo perf script --input ${INFILE} > ${SPEEDSCOPE_FILE}"
+red_fg "
+--- speedscope ---"
+sudo perf script --input ${INFILE} -f > ${SPEEDSCOPE_FILE}
+sudo chown ${LOGNAME}:${LOGNAME} ${SPEEDSCOPE_FILE}
+ls -lh $(realpath ${SPEEDSCOPE_FILE})
+echo "- ${SPEEDSCOPE_HELP}"
+red_fg "---"
+}
+
 
 # Find whether run from the command-line !
 # ref: https://stackoverflow.com/a/4262107/779269
@@ -50,7 +68,8 @@ cd ${1} || exit 1
 #pwd
 
 INFILE=perf.data
-OUTFILE=${2}
+RES_DIR="${1}"
+OUTFILE="${2}"
 STYLE=${3}
 TYPE=${4}
 CMD="${5}"
@@ -144,4 +163,6 @@ else
 fi
 
 echo "*NOTE* The SVG file \"${1}/${OUTFILE}\" is in a volatile temp folder; pl save it as required"
+
+speedscope_gen
 #exit 0

@@ -35,6 +35,13 @@ source colors.sh
 # ISSUES
 #  [X] why does 2flameg.sh seem to run twice?? the 'exit' and ^C ?
 
+export SPEEDSCOPE_HELP="As a bonus, this script also generates a 'speedscope' input file, a flamegraph viewable
+  in https://www.speedscope.app/
+  TIP: In the speedscope web app, the top line shows available lookup (and other) options:
+  Time Order   Left Heavy   Sandwich           <process-name> tid: <TID> (thrd#/total#)    Export  Import  <Style>  Help
+  Use these to lookup all/particular threads, export it (json), etc
+  Speedscope help available here: https://github.com/jlfwong/speedscope#usage"
+
 usage()
 {
   red_fg "Usage: ${name} -o SVG-out-filename(without .svg) [options ...]
@@ -66,7 +73,8 @@ Options:
 NOTE:
 - After pressing ^C to stop, please be patient... it can take a while to process.
 - The FlameGraph SVG (and perf.data file) are stored in the volatile ${PERF_RESULT_DIR_BASE}/<SVG-out-filename> dir;
-  copy them to a non-volatile location to save them."
+  copy them to a non-volatile location to save them
+- ${SPEEDSCOPE_HELP}"
 
   blue_fg "
 Examples:"
@@ -89,7 +97,7 @@ display_opts()
 {
 local opts=""
 
-opts="- SVG file will be generated here: ${PERF_RESULT_DIR_BASE}/${OUTFILE}/${OUTFILE}.svg"
+opts="- SVG and speedscope files will be generated here: ${PERF_RESULT_DIR_BASE}/${OUTFILE}/${OUTFILE}.svg"
 [[ -n "${CMD}" ]] && opts="${opts}
 - Command run: \"${CMD}\""
 [[ -n "${PID}" ]] && opts="${opts}
@@ -161,7 +169,7 @@ do
  	        PID=${OPTARG}
 	        #echo "-p passed; PID=${PID}"
 		# Check if PID is valid
-		sudo kill -0 "${PID}" 2>/dev/null || die "PID ${PID} is an invalid (or dead) process/thread?"
+		sudo kill -0 ${PID} 2>/dev/null || die "PID ${PID} is an invalid (or dead) process/thread?"
 		;;
 	  s)
 	        STYLE=${OPTARG}
@@ -227,7 +235,7 @@ if [ ! -z "${CMD}" ]; then  #------------------ Profile a particular command-lin
 elif [ ! -z "${PID}" ]; then  #------------------ Profile a particular process
  echo "### ${name}: recording samples on process PID ${PID} now...
  ${MSG_STOP}"
- sudo perf record -F "${HZ}" --call-graph dwarf -p "${PID}" || exit 1	# generates perf.data
+ sudo perf record -F "${HZ}" --call-graph dwarf -p ${PID} || exit 1	# generates perf.data
 else                        #---------------- Profile system-wide
  echo "### ${name}: recording samples system-wide now...
  ${MSG_STOP}"
