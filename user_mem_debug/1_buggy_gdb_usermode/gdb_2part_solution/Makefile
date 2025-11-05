@@ -65,6 +65,7 @@ LINKIN := -static-libasan   # use this lib for ASAN with GCC
 $(info Compiler set to $(CC); LINKIN = $(LINKIN))
 
 STRIP=${CROSS_COMPILE}strip
+STRIP_SPEC=--strip-debug
 READELF=${CROSS_COMPILE}readelf
 OBJCOPY=${CROSS_COMPILE}objcopy
 
@@ -133,7 +134,7 @@ prod: ${FNAME_C}.c
 	@echo " glibc (and NPTL) version: $(shell getconf GNU_LIBPTHREAD_VERSION|cut -d' ' -f2)"
 	@echo
 	${CC} ${CFLAGS} ${FNAME_C}.c -o ${FNAME_C} ${LINK}
-	${STRIP} --strip-all ./${FNAME_C}
+	${STRIP} $(STRIP_SPEC) ./${FNAME_C}
 
 # The '2-part executable' solution : use strip and objcopy to generate a
 # binary executable that has the ability to retrieve debug symbolic information
@@ -148,7 +149,7 @@ prod_2part: ${FNAME_C}.c
 # Then make the regular production build
 	#make prod
 	${CC} ${CFLAGS} ${FNAME_C}.c -o ${FNAME_C} ${LINK}
-	${STRIP} --strip-debug ./${FNAME_C}
+	${STRIP} $(STRIP_SPEC) ./${FNAME_C}
 # Most IMP, setup the 'debug link' in the release binary, pointing to the debug
 # info file; this, in effect, is the 2part solution!
 	${OBJCOPY} --add-gnu-debuglink=./${FNAME_C}_dbg ./${FNAME_C}
