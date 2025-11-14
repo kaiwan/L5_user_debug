@@ -56,6 +56,7 @@ static int test1(void)
 }
 #endif
 
+#undef FAULT_MEM
 #define NUM_LARGE	10000000
 static void *p[NUM_LARGE];
 int test2(void)
@@ -70,6 +71,10 @@ int test2(void)
 			printf("malloc failed after %d iters\n", i);
 			exit(1);
 		}
+#ifdef FAULT_MEM
+		else
+			memset(p[i], i & 0xFF, size);  // do real work
+#endif
 	}
 	for (i = 0; i < NUM_LARGE; i++) {
 		// Whoops, only some free()'s ; Leakage!
