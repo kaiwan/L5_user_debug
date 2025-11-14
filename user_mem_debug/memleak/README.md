@@ -7,10 +7,7 @@ The resulting FlameGraph (FG) should be able to 'show' this to us...
 
 
 ## So let's try it!
-make debug
-flame_grapher.sh -o memleak -c "$(pwd)/memleak_test_dbg"
-=======
-## So we do it:
+
 `make debug`
 
 `flame_grapher.sh -o memleak -c "$(pwd)/memleak_test_dbg"`
@@ -24,6 +21,12 @@ We can now literally 'see' that the width of the ...free() reactangle (__GI___li
 less than that of the ...malloc() rectangle (__GI___libc_malloc), proving the fact that we have a
 (simple) leakage bug!
 
+### IMPORTANT, please read
+One should not jump to conclude that, hey, we can now find all memory leaks via
+this 'FlameGraph' approach.. NO! It doesn't always work because real-world leakge
+bugs are typically more subtle; the typical example being third party library
+APIs that allocate memory under the hood and expect the caller to free it.
+
 ## Also, FYI:
 
 * Our trivial test case test1() does NOT show the desired result
@@ -36,8 +39,3 @@ care of that !
 done in the malloc() so as to not have the comiler optimize it away!
 This is done in test2()... and it works.
 
-## IMPORTANT
-One should not jump to conclude that, hey, we can now find all memory leaks via
-this 'FlameGraph' approach.. NO! It doesn't always work because real-world leakge
-bugs are typically more subtle; the typical example being third party library
-APIs that allocate memory under the hood and expect the caller to free it.
