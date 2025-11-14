@@ -5,15 +5,23 @@ We write a C program that deliberately leaks approx half the memory it allocs.
 The resulting FlameGraph (FG) should be able to 'show' this to us...
 (We use our FlemGrapher wrapper: https://github.com/kaiwan/flamegrapher )
 
+
 ## So let's try it!
 make debug
 flame_grapher.sh -o memleak -c "$(pwd)/memleak_test_dbg"
+=======
+## So we do it:
+`make debug`
 
-and then view the flamegraph (memleak.svg).
+`flame_grapher.sh -o memleak -c "$(pwd)/memleak_test_dbg"`
+
+... and then view the flamegraph (memleak.svg):
+![the flamegraph memleak.svg](https://github.com/kaiwan/L5_user_debug/blob/main/user_mem_debug/memleak/memleak.svg)
+
 
 ## Conclusion
-We can now literally 'see' that the width of the ...free() reactangle is much
-less than that of the ...malloc() rectangle, proving the fact that we have a
+We can now literally 'see' that the width of the ...free() reactangle (__GI___libc_free) is much
+less than that of the ...malloc() rectangle (__GI___libc_malloc), proving the fact that we have a
 (simple) leakage bug!
 
 ## Also, FYI:
