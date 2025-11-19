@@ -78,7 +78,8 @@ main(int argc, char **argv)
 	memset(sbuf, 0, pgsz);
 	// XECRET in hex
 	sprintf(sbuf, "%c%c%c%c%c%c", 0x58, 0x45, 0x43, 0x52, 0x45, 0x54);
-	sprintf(sbuf+6, "%c%c%c%c%c%c", 0x57+1, 0x44+1, 0x42+1, 0x51+1, 0x44+1, 0x53+1);
+	sprintf(sbuf + 6, "%c%c%c%c%c%c", 0x57 + 1, 0x44 + 1, 0x42 + 1,
+		0x51 + 1, 0x44 + 1, 0x53 + 1);
 	//free(sbuf); // if we free the buffer, it's usually gone!
 
 	/*
@@ -94,13 +95,7 @@ main(int argc, char **argv)
 	 *  uid, gid
 	 *  optimal block size, # of blocks
 	 */
-	printf("%s:\n"
-	       " inode number: %d : size (bytes): %d : mtime: %s\n"
-	       " uid: %d gid: %d\n"
-	       " blksize: %d blk count: %d\n",
-	       argv[1], statbuf.st_ino,
-	       statbuf.st_size,
-	       ctime(statbuf.st_mtime), // BUG: will cause a segfault and coredump (when enabled)
+	printf("%s:\n" " inode number: %d : size (bytes): %d : mtime: %s\n" " uid: %d gid: %d\n" " blksize: %d blk count: %d\n", argv[1], statbuf.st_ino, statbuf.st_size, ctime(statbuf.st_mtime),	// BUG: will cause a segfault and coredump (when enabled)
 	       statbuf.st_uid, statbuf.st_gid,
 	       statbuf.st_blksize, statbuf.st_blocks);
 
