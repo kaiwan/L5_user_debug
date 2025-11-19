@@ -14,8 +14,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <sys/stat.h>	// chmod()
-#include <sys/io.h>	// ioperm(), inb()
+#include <sys/stat.h>		// chmod()
+#include <sys/io.h>		// ioperm(), inb()
 
 // 5.
 int foo(int a)
@@ -23,8 +23,8 @@ int foo(int a)
 	if (a)
 		return (1);
 	/*
-	 clang:
-	 warning: non-void function does not return a value in all control paths [-Wreturn-type]
+	   clang:
+	   warning: non-void function does not return a value in all control paths [-Wreturn-type]
 	 */
 }				/* buggy, because sometimes no value is returned  */
 
@@ -177,7 +177,7 @@ int main(void)
 		   ASAN shows 'stack-buffer-overflow ...'
 		   LSAN/TSAN/UBSAN all show:
 		   'DEADLYSIGNAL
-		    ==3682859==ERROR: UndefinedBehaviorSanitizer: SEGV on unknown address ...'
+		   ==3682859==ERROR: UndefinedBehaviorSanitizer: SEGV on unknown address ...'
 		 */
 	}
 
@@ -190,8 +190,8 @@ int main(void)
 			/* Isn't it great ?  I can use elements 1-10 of a 4 element array, and no one cares */
 		}
 		/*
-		 gcc:
-		  warning: iteration 4 invokes undefined behavior [-Waggressive-loop-optimizations]
+		   gcc:
+		   warning: iteration 4 invokes undefined behavior [-Waggressive-loop-optimizations]
 		   clang: no warnings  (??)
 		 */
 	}
@@ -199,10 +199,11 @@ int main(void)
 
 	{
 		// 16. Octal numbers
-		int numbers[] = { 001,    // line up numbers for typographical 
-				          // clarity, lose big time 
-				  010,    // 8 not 10 
-				  014 };  // 12, not 14
+		int numbers[] = { 001,	// line up numbers for typographical 
+			// clarity, lose big time 
+			010,	// 8 not 10 
+			014
+		};		// 12, not 14
 		printf("'010' = %d, '014' = %d\n", numbers[1], numbers[2]);
 		// o/p: '010' = 8, '014' = 12    (!)
 
@@ -222,10 +223,10 @@ int main(void)
 		char naive_val;
 		unsigned char correct_val;
 
-	        // int ioperm(unsigned long from, unsigned long num, int turn_on);
+		// int ioperm(unsigned long from, unsigned long num, int turn_on);
 		// If turn_on is nonzero, the calling thread must be privileged (CAP_SYS_RAWIO)
 		// NEED to run this as root or with CAP_SYS_RAWIO !!!
-		#define MYPORT 0x20
+#define MYPORT 0x20
 		if (ioperm(MYPORT, 32, 1) < 0) {
 			perror("ioerm() failed");
 			exit(1);
@@ -233,15 +234,16 @@ int main(void)
 		// unsigned char inb(unsigned short port);
 		naive_val = inb(0x20);
 		correct_val = inb(0x20);
-		printf("naive_val = 0x%x, correct_val = 0x%x\n", naive_val, correct_val);
+		printf("naive_val = 0x%x, correct_val = 0x%x\n", naive_val,
+		       correct_val);
 
 		/*
-		 gcc:
-		 warning: conversion to ‘char’ from ‘unsigned char’ may change the sign of the result [-Wsign-conversion]
-		 clang:
-		  warning: implicit conversion changes signedness: 'unsigned char' to 'char' [-Wsign-conversion]
-			naive_val = inb(0x20);
-                                  ~ ^~~~~~~~~
+		   gcc:
+		   warning: conversion to ‘char’ from ‘unsigned char’ may change the sign of the result [-Wsign-conversion]
+		   clang:
+		   warning: implicit conversion changes signedness: 'unsigned char' to 'char' [-Wsign-conversion]
+		   naive_val = inb(0x20);
+		   ~ ^~~~~~~~~
 		 */
 	}
 
