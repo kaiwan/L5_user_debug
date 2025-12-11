@@ -24,7 +24,7 @@ double digits:      DBL_DIG=%d\n\
 long double digits: LDBL_DIG=%d\n\n",
 		FLT_DIG, DBL_DIG, LDBL_DIG);
 	/*
-	 * On my x86_64, Ubuntu 23.10, I get:
+	 * On my x86_64, Ubuntu 24.04, I get:
 	 * float digits:       FLT_DIG=6
 	 * double digits:      DBL_DIG=15
 	 * long double digits: LDBL_DIG=18
@@ -33,10 +33,11 @@ long double digits: LDBL_DIG=%d\n\n",
 	 */
 
 	res = 1.0/10.0;
-	printf("res of 1.0/10.0 is:\n"
-" 3 places accuracy: %.3Lf\n"
-"15 places accuracy: %.15Lf\n"
-"18 places accuracy: %.18Lf\n"
-"20 places accuracy: %.20Lf\n"
-	, res, res, res, res);
+	printf("result of 1.0/10.0 is:\n"
+"to  3 places accuracy: %.3Lf\n"
+"to 15 places accuracy: %.15Lf\n"
+"to 18 places accuracy: %.18Lf\n"
+"to 20 places accuracy: %.20Lf\n"
+"to 30 places accuracy: %.30Lf\n"
+	, res, res, res, res, res);
 }
