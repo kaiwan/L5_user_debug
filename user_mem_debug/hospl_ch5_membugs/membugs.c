@@ -41,7 +41,7 @@ int handle_err(int fatal, const char *fmt, ...)
 		return -1;
 
 	va_start(argp, fmt);
-	vsnprintf(err_str, ERRSTRMAX-1, fmt, argp);
+	vsnprintf(err_str, ERRSTRMAX - 1, fmt, argp);
 	va_end(argp);
 
 	fprintf(stderr, "%s", err_str);
@@ -68,7 +68,7 @@ int handle_err(int fatal, const char *fmt, ...)
 	   __FILE__, __func__, __LINE__, ##args);         \
 } while(0)
 
-static const size_t BLK_1MB = 1024*1024;
+static const size_t BLK_1MB = 1024 * 1024;
 
 /*
  * A demo: this function allocates memory internally; the caller
@@ -89,16 +89,16 @@ static void silly_getpath(char **ptr)
 /* test case 13 : memory leak test case 3: "lib" API leak */
 static void leakage_case3(int cond)
 {
-	char *mypath=NULL;
+	char *mypath = NULL;
 
 	printf("\n## Leakage test: case 3: \"lib\" API"
-		": runtime cond = %d\n", cond);
+	       ": runtime cond = %d\n", cond);
 
 	/* Use C's illusory 'pass-by-reference' model */
 	silly_getpath(&mypath);
 	printf("mypath = %s\n", mypath);
 
-	if (cond) /* Bug: if cond==0 then we have a leak! */
+	if (cond)		/* Bug: if cond==0 then we have a leak! */
 		free(mypath);
 }
 
@@ -121,22 +121,21 @@ static void amleaky(size_t mem)
 /* test case 12 : memory leak test case 2: leak in a loop */
 static void leakage_case2(size_t size, unsigned int reps)
 {
-	unsigned int i, threshold = 3*BLK_1MB;
+	unsigned int i, threshold = 3 * BLK_1MB;
 	double mem_leaked;
 
 	if (reps == 0)
 		reps = 1;
 	mem_leaked = size * reps;
 	printf("%s(): will now leak a total of %.0f bytes (%.2f MB)"
-			" [%zu bytes * %u loops]\n",
-			__func__, mem_leaked, mem_leaked/(1024*1024),
-			size, reps);
+	       " [%zu bytes * %u loops]\n",
+	       __func__, mem_leaked, mem_leaked / (1024 * 1024), size, reps);
 
 	if (mem_leaked >= threshold)
 		system("free|grep \"^Mem:\"");
 
-	for (i=0; i<reps; i++) {
-		if (i%10000 == 0)
+	for (i = 0; i < reps; i++) {
+		if (i % 10000 == 0)
 			printf("%s():%6d:malloc(%zu)\n", __func__, i, size);
 		amleaky(size);
 	}
@@ -150,7 +149,7 @@ static void leakage_case2(size_t size, unsigned int reps)
 static void leakage_case1(size_t size)
 {
 	printf("%s(): will now leak %zu bytes (%ld MB)\n",
-			__func__, size, size/(1024*1024));
+	       __func__, size, size / (1024 * 1024));
 	amleaky(size);
 }
 
@@ -158,8 +157,8 @@ static void leakage_case1(size_t size)
 static void doublefree(int cond)
 {
 	char *ptr, *bogus;
-	char name[]="Hands-on Linux Sys Prg";
-	int n=512;
+	char name[] = "Hands-on Linux Sys Prg";
+	int n = 512;
 
 	printf("%s(): cond %d\n", __func__, cond);
 	ptr = malloc(n);
@@ -169,21 +168,21 @@ static void doublefree(int cond)
 	free(ptr);
 
 	if (cond) {
-		bogus = malloc(-1UL); /* will fail! */
+		bogus = malloc(-1UL);	/* will fail! */
 		if (!bogus) {
 			fprintf(stderr, "%s:%s:%d: malloc failed\n",
-			   __FILE__, __func__, __LINE__);
-			free(ptr); /* Bug: double-free */
+				__FILE__, __func__, __LINE__);
+			free(ptr);	/* Bug: double-free */
 			exit(EXIT_FAILURE);
 		}
 	}
 }
 
 /* test case 9 : UAR (use-after-return) test case */
-static void * uar(void)
+static void *uar(void)
 {
 	char name[32];
-	
+
 	memset(name, 0, 32);
 	strncpy(name, "Hands-on Linux Sys Prg", 22);
 
@@ -194,25 +193,25 @@ static void * uar(void)
 static void uaf(void)
 {
 	char *arr, *next;
-	char name[]="Hands-on Linux Sys Prg";
-	int n=512;
+	char name[] = "Hands-on Linux Sys Prg";
+	int n = 512;
 
 	arr = malloc(n);
 	if (!arr)
 		FATAL("malloc arr failed\n");
 	memset(arr, 'a', n);
-	arr[n-1]='\0';
+	arr[n - 1] = '\0';
 	printf("%s():%d: arr = %p:%.*s\n", __func__, __LINE__, arr, 32, arr);
 
 	next = malloc(n);
 	if (!next) {
 		free(arr);
 		fprintf(stderr, "Error log: arr=%p:val=%s\n", arr, arr);
-			/* Noticed one more potential UAF here? */
+		/* Noticed one more potential UAF here? */
 		FATAL("malloc next failed\n");
 	}
 	free(arr);
-	strncpy(arr, name, strlen(name)); /* Bug: UAF */
+	strncpy(arr, name, strlen(name));	/* Bug: UAF */
 
 	printf("%s():%d: arr = %p:%.*s\n", __func__, __LINE__, arr, 32, arr);
 	free(next);
@@ -230,9 +229,9 @@ static void read_underflow(int cond)
 	orig = dest;
 
 	strncpy(dest, src, strlen(src));
-	if (cond) { /* Bug, below.. */
-		*(orig-1) = 'x';
-		dest --;
+	if (cond) {		/* Bug, below.. */
+		*(orig - 1) = 'x';
+		dest--;
 	}
 	printf(" dest: %s\n", dest);
 
@@ -253,8 +252,12 @@ static void read_overflow_dynmem(void)
 	 * Ideally, this should be caught as a bug by the compiler,
 	 * but isn't! (Tools do; seen later).
 	 */
-	arr[5] = 'S'; arr[6] = 'e'; arr[7] = 'c';
-	arr[8] = 'r'; arr[9] = 'e'; arr[10] = 'T';
+	arr[5] = 'S';
+	arr[6] = 'e';
+	arr[7] = 'c';
+	arr[8] = 'r';
+	arr[9] = 'e';
+	arr[10] = 'T';
 	printf("arr = %s\n", arr);
 
 	/* Bug 2, 3: more read buffer overflows */
@@ -318,11 +321,11 @@ static void write_overflow_compilemem(void)
 static int garr[5];
 static void write_overflow_globalmem(void)
 {
-   int i, arr[5];
+	int i, arr[5];
 
-   for (i = 0; i <= 5; i++) {
-       garr[i] = 100;  /* Bug: 'garr' overflows on i==5 */
-   }
+	for (i = 0; i <= 5; i++) {
+		garr[i] = 100;	/* Bug: 'garr' overflows on i==5 */
+	}
 }
 
 /* test case 1 : uninitialized var test case */
