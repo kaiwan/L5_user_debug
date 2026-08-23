@@ -95,9 +95,12 @@ main(int argc, char **argv)
 	 *  uid, gid
 	 *  optimal block size, # of blocks
 	 */
-	printf("%s:\n" " inode number: %d : size (bytes): %d : mtime: %s\n" " uid: %d gid: %d\n" " blksize: %d blk count: %d\n", argv[1], statbuf.st_ino, statbuf.st_size, ctime(statbuf.st_mtime),	// BUG: will cause a segfault and coredump (when enabled)
-	       statbuf.st_uid, statbuf.st_gid,
-	       statbuf.st_blksize, statbuf.st_blocks);
+	printf("%s:\n" " inode number: %d : size (bytes): %d : mtime: %s\n"
+		" uid: %d gid: %d\n" " blksize: %d blk count: %d\n",
+			argv[1], statbuf.st_ino, statbuf.st_size,
+			ctime(statbuf.st_mtime),	// BUG: will cause a segfault and coredump (when enabled)
+			statbuf.st_uid, statbuf.st_gid,
+			statbuf.st_blksize, statbuf.st_blocks);
 
 	exit(0);
 }
