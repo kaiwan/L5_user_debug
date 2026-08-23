@@ -40,9 +40,17 @@ echo "----------------------------------------------------------------------"
 [[ $1 -eq 1 ]] && echo "show_secret set to 1 => we don't call madvise(...MADV_DONTDUMP) and thus allow the 'secret' to show in the core dump"
 [[ $1 -eq 0 ]] && echo "show_secret set to 0 => we DO call madvise(...MADV_DONTDUMP) and thus do NOT allow the 'secret' to show in the core dump"
 
+# save & then set the core_pattern to 'core_run'
+ORIG_CORE_PAT=$(cat /proc/sys/kernel/core_pattern)
+sudo sh -c "echo core_run > /proc/sys/kernel/core_pattern"
+
 runcmd "./${PRG} $1"   ### CRASH! Segfault and coredump
 echo "----------------------------------------------------------------------"
-mv core* core_run
+ls core_run || die "Didn't get the core file named core_run, aborting..."
+#mv core* core_run
+
+# restore original
+sudo sh -c "echo \"${ORIG_CORE_PAT}\" > /proc/sys/kernel/core_pattern"
 
 # This works when madvise() isn't called and the debug version's crashed; the
 # core dump contains the secret!
