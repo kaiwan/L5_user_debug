@@ -58,6 +58,7 @@ int main(void)
 	{
 		// 2. Accidental assignment/Accidental Booleans
 		int a = 1, b = 2;
+		printf("*** test case 1: UMR: %s():%d\n", __func__, __LINE__);
 		if (a = b)
 			printf("a=b shows as True\n");
 		else
@@ -92,6 +93,7 @@ int main(void)
 
 	{
 		// 5. Phantom returned values
+		printf("*** test case 2: phantom return values: %s():%d\n", __func__, __LINE__);
 		printf("foo(1) = %d, foo(0) = %d\n", foo(1), foo(0));
 		// clang :
 		// common_c_bugs.c:13:25: warning: non-void function does not return a value in all control paths [-Wreturn-type]
@@ -101,6 +103,7 @@ int main(void)
 
 	{
 		// 9. C's motto: who cares what it means? I just compile it!
+		printf("*** test case 3: switch-case init: %s():%d\n", __func__, __LINE__);
 		int a = 2;
 		switch (a) {
 			int var = 1;	/* This initialization typically does not happen. */
@@ -117,8 +120,9 @@ int main(void)
 		}
 	}
 
-#if 0
+#if 1
 	{
+		printf("*** test case 4: unsafe ret values: %s():%d\n", __func__, __LINE__);
 		// 10. Unsafe returned values
 		char *res = uar();
 		printf("res: %s\n", (char *)res);
@@ -128,6 +132,7 @@ int main(void)
 
 	{
 		// 12. Uninitialized local variables
+		printf("*** test case 5: UMR (again, with a twist added): %s():%d\n", __func__, __LINE__);
 		// The UMR - Uninitialized Memory Reads - bug!
 		int b;
 		if (b)		/* bug! b is not initialized! */
@@ -162,6 +167,7 @@ int main(void)
 
 	{
 		// 13. Cluttered compile time environment
+		printf("*** test case 5: Cluttered compile time environment: %s():%d\n", __func__, __LINE__);
 #define BUFFSIZE 2048
 		long foo[BUFSIZ];	/* note spelling of BUFSIZ != BUFFSIZE */
 
@@ -182,6 +188,7 @@ int main(void)
 	}
 
 	{
+		printf("*** test case 6: array overflowed: %s():%d\n", __func__, __LINE__);
 		// 15. Utterly unsafe arrays
 		int thisIsNuts[4];
 		int i;
@@ -199,6 +206,7 @@ int main(void)
 
 	{
 		// 16. Octal numbers
+		printf("*** test case 7: octal numbers!: %s():%d\n", __func__, __LINE__);
 		int numbers[] = { 001,	// line up numbers for typographical 
 			// clarity, lose big time 
 			010,	// 8 not 10 
@@ -220,13 +228,14 @@ int main(void)
 
 	{
 		// 17. Signed Characters/Unsigned bytes
+		printf("*** test case 8: signed vs unsigned numbers: %s():%d\n", __func__, __LINE__);
 		char naive_val;
 		unsigned char correct_val;
 
 		// int ioperm(unsigned long from, unsigned long num, int turn_on);
 		// If turn_on is nonzero, the calling thread must be privileged (CAP_SYS_RAWIO)
 		// NEED to run this as root or with CAP_SYS_RAWIO !!!
-#define MYPORT 0x20
+#define MYPORT 0x20  // usually the PIC on x86
 		if (ioperm(MYPORT, 32, 1) < 0) {
 			perror("ioerm() failed");
 			exit(1);
