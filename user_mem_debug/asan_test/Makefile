@@ -20,7 +20,7 @@
 ## as desired. We have deliberately not kept the sanitizer targets; add
 ## them to the 'ALL := ' statement if you wish to build them by default.
 
-ALL :=  membugs membugs_dbg membugs_dbg_asan membugs_dbg_msan membugs_dbg_ub
+ALL := asan_try_dbg_asan membugs membugs_dbg membugs_dbg_asan membugs_dbg_msan membugs_dbg_ub
 
 #CC=${CROSS_COMPILE}gcc
 CC=${CROSS_COMPILE}clang
@@ -39,6 +39,9 @@ LINKIN := -static-libasan
 
 all: ${ALL}
 CB_FILES := *.[ch]
+
+asan_try_dbg_asan: asan_try.c
+	${CC} ${CFLAGS_DBG_ASAN} asan_try.c -o asan_try_dbg_asan
 
 membugs: membugs.c
 	${CC} ${CFLAGS} membugs.c -o membugs
