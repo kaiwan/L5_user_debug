@@ -46,7 +46,7 @@ ALL_NM :=  ${PROG_NAME} ${PROG_NAME}_dbg ${PROG_NAME}_dbg_asan ${PROG_NAME}_dbg_
 
 # Decide which compiler to use; GCC doesn't support MSAN, clang does
 CC := ${CROSS_COMPILE}gcc
-LINKIN := -static-libasan   # use this lib for ASAN with GCC
+LINKIN := #-static-libasan   # use this lib for ASAN with GCC
 #ifeq (, $(shell which clang))
 #	@printf '%b' '$(BOLD)$(BG_RED)'
 #	$(warning === WARNING! No clang (compiler) in PATH (reqd for MSAN); consider doing 'sudo apt install clang' or equivalent ===)
