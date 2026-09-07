@@ -72,4 +72,4 @@ OBJS := $(patsubst %.c,$(OBJDIR)/%.o,$(SRCS))
 OBJS_GCOV := $(patsubst %.c,$(OBJDIR)/%.gcov.o,$(SRCS))
 
 #---------------- Include the common Makefile --------------------------------
-include ../../../L5_user_debug/Makefile_common_app.mk
+include ../../Makefile_common_app.mk
